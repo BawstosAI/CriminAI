@@ -1,0 +1,7 @@
+{
+  "name": "WILD-CriminAI",
+  "description": "Interactive terminal-style forensic sketch artist bot interface.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
