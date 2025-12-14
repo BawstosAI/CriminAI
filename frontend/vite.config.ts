@@ -7,6 +7,17 @@ export default defineConfig(() => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          // Proxy API requests to backend
+          '/api': {
+            target: 'http://localhost:8000',
+            changeOrigin: true,
+          },
+          '/generated': {
+            target: 'http://localhost:8000',
+            changeOrigin: true,
+          },
+        },
       },
       plugins: [react()],
       resolve: {

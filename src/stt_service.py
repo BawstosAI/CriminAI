@@ -1,6 +1,7 @@
 """Real-time Speech-to-Text service wrapper using moshi-server WebSocket.
 
 Based on kyutai-labs/unmute architecture, adapted for forensic artist system.
+Includes semantic VAD (Voice Activity Detection) for turn-taking.
 """
 
 from __future__ import annotations
@@ -8,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import struct
+import time
 from dataclasses import dataclass, field
 from typing import AsyncIterator, Callable, Optional
 
@@ -21,7 +23,14 @@ except ImportError as exc:
         "Install dependencies: pip install msgpack websockets"
     ) from exc
 
+from vad import ExponentialMovingAverage, VADConfig, ConversationState
+
 logger = logging.getLogger(__name__)
+
+
+# Constants matching unmute
+FRAME_TIME_SEC = 0.08  # 80ms frames
+STT_DELAY_SEC = 0.5  # Expected STT processing delay
 
 
 @dataclass
@@ -43,10 +52,14 @@ class TranscriptionResult:
     is_final: bool
     confidence: float = 1.0
     timestamp: float = 0.0
+    pause_probability: float = 1.0  # 1.0 = likely paused, 0.0 = speaking
 
 
 class SpeechToText:
-    """Real-time Speech-to-Text client using WebSocket connection to moshi-server."""
+    """Real-time Speech-to-Text client using WebSocket connection to moshi-server.
+    
+    Includes semantic VAD for detecting when user has finished speaking.
+    """
 
     def __init__(self, config: Optional[STTConfig] = None):
         self.config = config or STTConfig()
@@ -54,6 +67,32 @@ class SpeechToText:
         self._running = False
         self._audio_queue: asyncio.Queue[bytes] = asyncio.Queue()
         self._transcript_buffer: list[str] = []
+        
+        # VAD / Pause prediction (based on unmute)
+        # attack = from speaking to not speaking (quick)
+        # release = from not speaking to speaking (quick)
+        self.pause_prediction = ExponentialMovingAverage(
+            attack_time=0.01, release_time=0.01, initial_value=1.0
+        )
+        
+        # Timing for turn-taking
+        self.current_time: float = -STT_DELAY_SEC
+        self.sent_samples: int = 0
+        self.received_words: int = 0
+        self.delay_sec: float = STT_DELAY_SEC
+        
+        # Callbacks
+        self._on_pause_detected: Optional[Callable[[], None]] = None
+        self._on_speech_started: Optional[Callable[[], None]] = None
+    
+    def set_turn_callbacks(
+        self,
+        on_pause_detected: Optional[Callable[[], None]] = None,
+        on_speech_started: Optional[Callable[[], None]] = None,
+    ):
+        """Set callbacks for turn-taking events."""
+        self._on_pause_detected = on_pause_detected
+        self._on_speech_started = on_speech_started
 
     @property
     def ws_url(self) -> str:
@@ -66,9 +105,10 @@ class SpeechToText:
             self._ws = await websockets.connect(
                 self.ws_url,
                 additional_headers=headers,
-                ping_interval=20,
-                ping_timeout=20,
-                close_timeout=5,
+                ping_interval=30,
+                ping_timeout=30,
+                close_timeout=10,
+                max_size=10 * 1024 * 1024,  # 10MB max message size
             )
             self._running = True
             logger.info(f"Connected to STT server at {self.ws_url}")
@@ -79,10 +119,13 @@ class SpeechToText:
     async def disconnect(self) -> None:
         """Close WebSocket connection."""
         self._running = False
-        if self._ws:
-            await self._ws.close()
-            self._ws = None
-            logger.info("Disconnected from STT server")
+        if self._ws and not self._ws.closed:
+            try:
+                await self._ws.close()
+            except Exception as e:
+                logger.warning(f"Error during disconnect: {e}")
+        self._ws = None
+        logger.info("Disconnected from STT server")
 
     async def send_audio(self, audio_data: bytes) -> None:
         """Send audio chunk to STT server.
@@ -90,12 +133,23 @@ class SpeechToText:
         Args:
             audio_data: Raw PCM audio bytes (16-bit signed, mono, 16kHz)
         """
-        if not self._ws or not self._running:
+        if not self._ws or not self._running or self._ws.closed:
             raise RuntimeError("Not connected to STT server")
         
-        # Pack audio data with msgpack
-        message = msgpack.packb({"audio": audio_data})
-        await self._ws.send(message)
+        try:
+            # Pack audio data with msgpack
+            message = msgpack.packb({"audio": audio_data})
+            await self._ws.send(message)
+            
+            # Update timing for pause detection
+            num_samples = len(audio_data) // 2  # 2 bytes per int16 sample
+            self.sent_samples += num_samples
+            self.current_time += num_samples / self.config.sample_rate
+            
+        except websockets.exceptions.ConnectionClosed as e:
+            logger.error(f"Connection closed while sending audio: {e}")
+            self._running = False
+            raise RuntimeError("Connection lost") from e
 
     async def send_audio_array(self, audio: np.ndarray) -> None:
         """Send audio numpy array to STT server.
@@ -106,34 +160,117 @@ class SpeechToText:
         # Convert float32 to int16
         audio_int16 = (audio * 32767).astype(np.int16)
         await self.send_audio(audio_int16.tobytes())
+    
+    def update_pause_prediction(self, pause_prob: float):
+        """Update pause prediction from STT server response.
+        
+        Args:
+            pause_prob: Probability that user has paused [0-1]
+        """
+        old_value = self.pause_prediction.value
+        self.pause_prediction.update(dt=FRAME_TIME_SEC, new_value=pause_prob)
+        
+        # Detect transitions
+        if old_value > 0.5 and self.pause_prediction.value < 0.3:
+            # Speech started
+            logger.debug(f"Speech started (pause: {old_value:.2f} -> {self.pause_prediction.value:.2f})")
+            if self._on_speech_started:
+                self._on_speech_started()
+    
+    def should_end_turn(self, threshold: float = 0.6) -> bool:
+        """Check if we should end the user's turn based on pause prediction.
+        
+        Args:
+            threshold: Pause probability threshold (default 0.6)
+            
+        Returns:
+            True if user appears to have finished speaking
+        """
+        return self.pause_prediction.value > threshold
 
     async def receive_transcriptions(self) -> AsyncIterator[TranscriptionResult]:
-        """Receive transcription results from STT server."""
+        """Receive transcription results from STT server.
+        
+        Also processes pause prediction for turn-taking.
+        """
         if not self._ws:
             raise RuntimeError("Not connected to STT server")
+        
+        # Skip first few steps as pause prediction stabilizes
+        n_steps_to_wait = 12
 
         try:
             while self._running:
                 try:
                     message = await asyncio.wait_for(
                         self._ws.recv(),
-                        timeout=0.1
+                        timeout=5.0  # Increased from 0.1s to 5s
                     )
                 except asyncio.TimeoutError:
+                    # Check if connection is still alive
+                    if not self._ws or self._ws.closed:
+                        logger.warning("STT connection lost during timeout")
+                        break
                     continue
-                except websockets.exceptions.ConnectionClosed:
-                    logger.info("STT connection closed")
+                except websockets.exceptions.ConnectionClosed as e:
+                    logger.info(f"STT connection closed: {e}")
+                    break
+                except Exception as e:
+                    logger.error(f"Unexpected error in receive: {e}")
                     break
 
                 # Unpack msgpack response
-                data = msgpack.unpackb(message, raw=False)
+                try:
+                    data = msgpack.unpackb(message, raw=False)
+                except Exception as e:
+                    logger.warning(f"Failed to unpack message: {e}")
+                    continue
                 
+                logger.debug(f"STT message: {data}")
+                
+                # Handle step messages with pause prediction (like unmute's STTStepMessage)
+                if "prs" in data:
+                    # prs = pause prediction scores from STT
+                    # prs[2] is typically the pause probability
+                    self.current_time += FRAME_TIME_SEC
+                    if n_steps_to_wait > 0:
+                        n_steps_to_wait -= 1
+                    else:
+                        pause_prob = data["prs"][2] if len(data.get("prs", [])) > 2 else 0.5
+                        self.update_pause_prediction(pause_prob)
+                        
+                        # Check for pause and trigger callback
+                        if self.should_end_turn() and self._on_pause_detected:
+                            self._on_pause_detected()
+                
+                # Handle various text field formats from different STT servers
+                text_content = None
                 if "text" in data:
+                    text_content = data["text"]
+                elif "transcript" in data:
+                    text_content = data["transcript"]
+                elif "result" in data and isinstance(data["result"], str):
+                    text_content = data["result"]
+                elif "words" in data and isinstance(data["words"], list):
+                    # Handle word-by-word format
+                    text_content = " ".join(w.get("text", w.get("word", "")) for w in data["words"])
+                
+                if text_content:
+                    self.received_words += 1
+                    
+                    # Extract pause probability if available
+                    pause_prob = self.pause_prediction.value
+                    if "prs" in data and len(data["prs"]) > 2:
+                        pause_prob = data["prs"][2]
+                    
+                    logger.info(f"STT yielding: '{text_content}'")
+                    
                     yield TranscriptionResult(
-                        text=data["text"],
-                        is_final=data.get("is_final", False),
+                        text=text_content,
+                        is_final=data.get("is_final", data.get("final", True)),
                         confidence=data.get("confidence", 1.0),
-                        timestamp=data.get("timestamp", 0.0),
+                        timestamp=data.get("timestamp", data.get("start_time", self.current_time)),
+                        pause_probability=pause_prob,
                     )
                 elif "error" in data:
                     logger.error(f"STT error: {data['error']}")

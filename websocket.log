@@ -1,24 +1,549 @@
-INFO:     Started server process [9636]
+2025-12-14 17:36:31,855 - asyncio - DEBUG - Using selector: EpollSelector
+INFO:     Started server process [38007]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     127.0.0.1:36882 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41908 - "GET / HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41930 - "WebSocket /v1/realtime/text" [accepted]
-INFO:__main__:New text session: 0fabe083-cc68-4472-82cc-53001226865a
+INFO:     127.0.0.1:54844 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60502 - "WebSocket /v1/realtime" [accepted]
+2025-12-14 17:37:01,077 - __main__ - INFO - ========================================
+2025-12-14 17:37:01,077 - __main__ - INFO - \ud83d\udd17 New WebSocket connection: 86722e60-8aee-465d-865e-3d0e6ff62149
+2025-12-14 17:37:01,077 - __main__ - INFO - ========================================
 INFO:     connection open
-INFO:     127.0.0.1:41908 - "GET /voice HTTP/1.1" 200 OK
-INFO:__main__:Text session disconnected: 0fabe083-cc68-4472-82cc-53001226865a
-INFO:     connection closed
-INFO:     127.0.0.1:46586 - "WebSocket /v1/realtime" [accepted]
-INFO:__main__:New WebSocket connection: 1b7a0956-e5ba-45de-9650-725ef6f884c9
+2025-12-14 17:37:01,078 - __main__ - INFO - Sent initial session state to client
+INFO:     127.0.0.1:60510 - "WebSocket /v1/realtime" [accepted]
+2025-12-14 17:37:03,229 - __main__ - INFO - ========================================
+2025-12-14 17:37:03,229 - __main__ - INFO - \ud83d\udd17 New WebSocket connection: 3aa1a79f-2ee7-4158-a9b1-d6ff61c64141
+2025-12-14 17:37:03,229 - __main__ - INFO - ========================================
 INFO:     connection open
-INFO:forensic_artist_handler:Forensic Artist session started
-INFO:httpx:HTTP Request: POST http://localhost:8091/v1/chat/completions "HTTP/1.1 200 OK"
-ERROR:__main__:WebSocket error: Not connected to STT server
-INFO:forensic_artist_handler:Forensic Artist session stopped
-INFO:     connection closed
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [9636]
+2025-12-14 17:37:03,229 - __main__ - INFO - Sent initial session state to client
+2025-12-14 17:37:06,719 - __main__ - INFO - >>> Received message: type=start_listening
+2025-12-14 17:37:06,719 - __main__ - INFO - >>> START_LISTENING received - switching to voice mode
+2025-12-14 17:37:06,720 - tts_service - WARNING - No Gradium API key provided. Set GRADIUM_API_KEY env variable.
+2025-12-14 17:37:06,742 - __main__ - INFO - Voice session created: handler=True, voice_state=True
+2025-12-14 17:37:06,742 - forensic_artist_handler - INFO - Forensic Artist session started
+2025-12-14 17:37:06,742 - __main__ - INFO - Handler started
+2025-12-14 17:37:06,742 - __main__ - INFO - Connecting to STT at ws://localhost:8090/api/asr-streaming...
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - = connection is CONNECTING
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - > GET /api/asr-streaming HTTP/1.1
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - > Host: localhost:8090
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - > Upgrade: websocket
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - > Connection: Upgrade
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - > Sec-WebSocket-Key: mBoALnHMWW2u9lttlt3jdw==
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - > Sec-WebSocket-Version: 13
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - > Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - > kyutai-api-key: public_token
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - > User-Agent: Python/3.12 websockets/15.0.1
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - < HTTP/1.1 101 Switching Protocols
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - < connection: upgrade
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - < upgrade: websocket
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - < sec-websocket-accept: tLv3NTVUPRATADlQmzal2C6xAZ4=
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - < date: Sun, 14 Dec 2025 16:37:06 GMT
+2025-12-14 17:37:06,746 - websockets.client - DEBUG - = connection is OPEN
+2025-12-14 17:37:06,747 - stt_service - INFO - Connected to STT server at ws://localhost:8090/api/asr-streaming
+2025-12-14 17:37:06,747 - __main__ - INFO - ✅ STT connected for session 3aa1a79f-2ee7-4158-a9b1-d6ff61c64141
+2025-12-14 17:37:06,747 - __main__ - INFO - STT listener started
+2025-12-14 17:37:06,747 - __main__ - INFO - >>> Received message: type=text_input
+2025-12-14 17:37:06,749 - websockets.client - DEBUG - < BINARY 81 a4 74 79 70 65 a5 52 65 61 64 79 [12 bytes]
+2025-12-14 17:37:06,750 - stt_service - DEBUG - STT message: {'type': 'Ready'}
+2025-12-14 17:37:06,849 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730226.8s
+2025-12-14 17:37:07,890 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730227.9s
+2025-12-14 17:37:08,921 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730228.9s
+2025-12-14 17:37:09,934 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730229.9s
+2025-12-14 17:37:10,943 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730230.9s
+2025-12-14 17:37:11,750 - stt_service - ERROR - Error receiving transcriptions: 'ClientConnection' object has no attribute 'closed'
+2025-12-14 17:37:11,751 - __main__ - ERROR - STT listener error: 'ClientConnection' object has no attribute 'closed'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/akpale/hackatons/prep_first_hackaton_ever/CriminAI/.venv/lib/python3.12/site-packages/websockets/asyncio/connection.py", line 303, in recv
+    return await self.recv_messages.get(decode)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akpale/hackatons/prep_first_hackaton_ever/CriminAI/.venv/lib/python3.12/site-packages/websockets/asyncio/messages.py", line 159, in get
+    frame = await self.frames.get(not self.closed)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akpale/hackatons/prep_first_hackaton_ever/CriminAI/.venv/lib/python3.12/site-packages/websockets/asyncio/messages.py", line 51, in get
+    await self.get_waiter
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/akpale/hackatons/prep_first_hackaton_ever/CriminAI/src/stt_service.py", line 205, in receive_transcriptions
+    message = await asyncio.wait_for(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 519, in wait_for
+    async with timeouts.timeout(timeout):
+  File "/usr/lib/python3.12/asyncio/timeouts.py", line 115, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/akpale/hackatons/prep_first_hackaton_ever/CriminAI/src/websocket_server.py", line 492, in stt_listener
+    async for transcript_result in h.stt.receive_transcriptions():
+  File "/home/akpale/hackatons/prep_first_hackaton_ever/CriminAI/src/stt_service.py", line 211, in receive_transcriptions
+    if not self._ws or self._ws.closed:
+                       ^^^^^^^^^^^^^^^
+AttributeError: 'ClientConnection' object has no attribute 'closed'. Did you mean: 'close'?
+2025-12-14 17:37:11,946 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730231.9s
+2025-12-14 17:37:12,949 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730232.9s
+2025-12-14 17:37:13,955 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730234.0s
+2025-12-14 17:37:14,984 - websockets.client - DEBUG - < PING '' [0 bytes]
+2025-12-14 17:37:14,984 - websockets.client - DEBUG - > PONG '' [0 bytes]
+2025-12-14 17:37:15,017 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730235.0s
+2025-12-14 17:37:16,023 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730236.0s
+2025-12-14 17:37:17,028 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730237.0s
+2025-12-14 17:37:18,035 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730238.0s
+2025-12-14 17:37:19,038 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730239.0s
+2025-12-14 17:37:20,041 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730240.0s
+2025-12-14 17:37:21,044 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730241.0s
+2025-12-14 17:37:22,050 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730242.1s
+2025-12-14 17:37:23,064 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730243.1s
+2025-12-14 17:37:24,085 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730244.1s
+2025-12-14 17:37:24,234 - __main__ - INFO - >>> Received message: type=audio_chunk
+2025-12-14 17:37:24,234 - __main__ - DEBUG - >>> AUDIO_CHUNK received, data keys: dict_keys(['audio'])
+2025-12-14 17:37:24,234 - __main__ - DEBUG - Audio base64 length: 35172
+2025-12-14 17:37:24,234 - __main__ - DEBUG - Decoded base64 to 26378 bytes
+2025-12-14 17:37:24,234 - __main__ - DEBUG - decode_webm_to_pcm: input size=26378 bytes
+2025-12-14 17:37:24,253 - __main__ - DEBUG - Trying pydub for audio decoding...
+2025-12-14 17:37:24,314 - pydub.converter - DEBUG - subprocess.call(['ffmpeg', '-y', '-f', 'webm', '-read_ahead_limit', '-1', '-i', 'cache:pipe:0', '-acodec', 'pcm_s32le', '-vn', '-f', 'wav', '-'])
+2025-12-14 17:37:24,361 - __main__ - DEBUG - pydub success: output size=51840 bytes, duration=1.62s
+2025-12-14 17:37:24,361 - __main__ - ERROR - Error processing audio chunk: 'ClientConnection' object has no attribute 'closed'
+Traceback (most recent call last):
+  File "/home/akpale/hackatons/prep_first_hackaton_ever/CriminAI/src/websocket_server.py", line 675, in websocket_endpoint
+    if not handler.stt._ws or handler.stt._ws.closed:
+                              ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ClientConnection' object has no attribute 'closed'. Did you mean: 'close'?
+2025-12-14 17:37:24,361 - __main__ - INFO - >>> Received message: type=stop_listening
+2025-12-14 17:37:24,361 - __main__ - INFO - >>> STOP_LISTENING received - processing turn
+2025-12-14 17:37:24,863 - __main__ - WARNING - No speech detected
+2025-12-14 17:37:24,986 - websockets.client - DEBUG - < PING '' [0 bytes]
+2025-12-14 17:37:24,986 - websockets.client - DEBUG - > PONG '' [0 bytes]
+2025-12-14 17:37:25,097 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730245.1s
+2025-12-14 17:37:26,105 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730246.1s
+2025-12-14 17:37:27,110 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730247.1s
+2025-12-14 17:37:28,115 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730248.1s
+2025-12-14 17:37:29,117 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730249.1s
+2025-12-14 17:37:30,124 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730250.1s
+2025-12-14 17:37:31,132 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730251.1s
+2025-12-14 17:37:32,140 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730252.1s
+2025-12-14 17:37:33,153 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730253.2s
+2025-12-14 17:37:34,171 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730254.2s
+2025-12-14 17:37:34,981 - websockets.client - DEBUG - > PING dd 36 10 09 [binary, 4 bytes]
+2025-12-14 17:37:34,981 - websockets.client - DEBUG - % sent keepalive ping
+2025-12-14 17:37:34,981 - websockets.client - DEBUG - < PONG dd 36 10 09 [binary, 4 bytes]
+2025-12-14 17:37:34,981 - websockets.client - DEBUG - % received keepalive pong
+2025-12-14 17:37:35,024 - websockets.client - DEBUG - < PING '' [0 bytes]
+2025-12-14 17:37:35,024 - websockets.client - DEBUG - > PONG '' [0 bytes]
+2025-12-14 17:37:35,182 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730255.2s
+2025-12-14 17:37:35,736 - __main__ - INFO - >>> Received message: type=audio_chunk
+2025-12-14 17:37:35,736 - __main__ - DEBUG - >>> AUDIO_CHUNK received, data keys: dict_keys(['audio'])
+2025-12-14 17:37:35,736 - __main__ - DEBUG - Audio base64 length: 51916
+2025-12-14 17:37:35,736 - __main__ - DEBUG - Decoded base64 to 38936 bytes
+2025-12-14 17:37:35,736 - __main__ - DEBUG - decode_webm_to_pcm: input size=38936 bytes
+2025-12-14 17:37:35,736 - __main__ - DEBUG - Trying pydub for audio decoding...
+2025-12-14 17:37:35,782 - pydub.converter - DEBUG - subprocess.call(['ffmpeg', '-y', '-f', 'webm', '-read_ahead_limit', '-1', '-i', 'cache:pipe:0', '-acodec', 'pcm_s32le', '-vn', '-f', 'wav', '-'])
+2025-12-14 17:37:35,822 - __main__ - DEBUG - pydub success: output size=76800 bytes, duration=2.40s
+2025-12-14 17:37:35,822 - __main__ - ERROR - Error processing audio chunk: 'ClientConnection' object has no attribute 'closed'
+Traceback (most recent call last):
+  File "/home/akpale/hackatons/prep_first_hackaton_ever/CriminAI/src/websocket_server.py", line 675, in websocket_endpoint
+    if not handler.stt._ws or handler.stt._ws.closed:
+                              ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ClientConnection' object has no attribute 'closed'. Did you mean: 'close'?
+2025-12-14 17:37:35,822 - __main__ - INFO - >>> Received message: type=stop_listening
+2025-12-14 17:37:35,822 - __main__ - INFO - >>> STOP_LISTENING received - processing turn
+2025-12-14 17:37:36,323 - __main__ - WARNING - No speech detected
+2025-12-14 17:37:36,324 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730256.3s
+2025-12-14 17:37:37,327 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730257.3s
+2025-12-14 17:37:38,332 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730258.3s
+2025-12-14 17:37:39,342 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730259.3s
+2025-12-14 17:37:40,349 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730260.3s
+2025-12-14 17:37:41,354 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730261.4s
+2025-12-14 17:37:42,360 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730262.4s
+2025-12-14 17:37:43,365 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730263.4s
+2025-12-14 17:37:44,368 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730264.4s
+2025-12-14 17:37:44,987 - websockets.client - DEBUG - < PING '' [0 bytes]
+2025-12-14 17:37:44,988 - websockets.client - DEBUG - > PONG '' [0 bytes]
+2025-12-14 17:37:45,432 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730265.4s
+2025-12-14 17:37:46,439 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730266.4s
+2025-12-14 17:37:47,445 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730267.4s
+2025-12-14 17:37:48,450 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730268.5s
+2025-12-14 17:37:49,456 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730269.5s
+2025-12-14 17:37:50,461 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730270.5s
+2025-12-14 17:37:51,475 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730271.5s
+2025-12-14 17:37:52,478 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730272.5s
+2025-12-14 17:37:53,244 - websockets.client - DEBUG - < PING '' [0 bytes]
+2025-12-14 17:37:53,244 - websockets.client - DEBUG - > PONG '' [0 bytes]
+2025-12-14 17:37:53,481 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730273.5s
+2025-12-14 17:37:54,512 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730274.5s
+2025-12-14 17:37:55,527 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730275.5s
+2025-12-14 17:37:56,535 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730276.5s
+2025-12-14 17:37:57,548 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730277.5s
+2025-12-14 17:37:58,563 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730278.6s
+2025-12-14 17:37:59,577 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730279.6s
+2025-12-14 17:38:00,581 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730280.6s
+2025-12-14 17:38:01,587 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730281.6s
+2025-12-14 17:38:02,615 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730282.6s
+2025-12-14 17:38:03,237 - websockets.client - DEBUG - > PING 6b f8 a0 07 [binary, 4 bytes]
+2025-12-14 17:38:03,237 - websockets.client - DEBUG - % sent keepalive ping
+2025-12-14 17:38:03,237 - websockets.client - DEBUG - < PONG 6b f8 a0 07 [binary, 4 bytes]
+2025-12-14 17:38:03,238 - websockets.client - DEBUG - % received keepalive pong
+2025-12-14 17:38:03,279 - websockets.client - DEBUG - < PING '' [0 bytes]
+2025-12-14 17:38:03,279 - websockets.client - DEBUG - > PONG '' [0 bytes]
+2025-12-14 17:38:03,624 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730283.6s
+2025-12-14 17:38:04,639 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730284.6s
+2025-12-14 17:38:05,647 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730285.6s
+2025-12-14 17:38:06,653 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730286.7s
+2025-12-14 17:38:07,656 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730287.7s
+2025-12-14 17:38:08,659 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730288.7s
+2025-12-14 17:38:09,663 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730289.7s
+2025-12-14 17:38:10,668 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730290.7s
+2025-12-14 17:38:11,673 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730291.7s
+2025-12-14 17:38:12,679 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730292.7s
+2025-12-14 17:38:13,248 - websockets.client - DEBUG - < PING '' [0 bytes]
+2025-12-14 17:38:13,248 - websockets.client - DEBUG - > PONG '' [0 bytes]
+2025-12-14 17:38:13,684 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730293.7s
+2025-12-14 17:38:14,689 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730294.7s
+2025-12-14 17:38:15,723 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730295.7s
+2025-12-14 17:38:16,726 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730296.7s
+2025-12-14 17:38:17,729 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730297.7s
+2025-12-14 17:38:18,734 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730298.7s
+2025-12-14 17:38:19,739 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730299.7s
+2025-12-14 17:38:20,745 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730300.7s
+2025-12-14 17:38:21,577 - websockets.client - DEBUG - < PING '' [0 bytes]
+2025-12-14 17:38:21,577 - websockets.client - DEBUG - > PONG '' [0 bytes]
+2025-12-14 17:38:21,751 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730301.8s
+2025-12-14 17:38:22,755 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730302.8s
+2025-12-14 17:38:23,759 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730303.8s
+2025-12-14 17:38:24,762 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730304.8s
+2025-12-14 17:38:25,768 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730305.8s
+2025-12-14 17:38:26,775 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730306.8s
+2025-12-14 17:38:27,783 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730307.8s
+2025-12-14 17:38:28,789 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730308.8s
+2025-12-14 17:38:29,795 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730309.8s
+2025-12-14 17:38:30,801 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730310.8s
+2025-12-14 17:38:31,566 - websockets.client - DEBUG - > PING bb 71 bd a8 [binary, 4 bytes]
+2025-12-14 17:38:31,566 - websockets.client - DEBUG - % sent keepalive ping
+2025-12-14 17:38:31,567 - websockets.client - DEBUG - < PONG bb 71 bd a8 [binary, 4 bytes]
+2025-12-14 17:38:31,567 - websockets.client - DEBUG - % received keepalive pong
+2025-12-14 17:38:31,610 - websockets.client - DEBUG - < PING '' [0 bytes]
+2025-12-14 17:38:31,610 - websockets.client - DEBUG - > PONG '' [0 bytes]
+2025-12-14 17:38:31,808 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730311.8s
+2025-12-14 17:38:32,810 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730312.8s
+2025-12-14 17:38:33,813 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730313.8s
+2025-12-14 17:38:34,824 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730314.8s
+2025-12-14 17:38:35,832 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730315.8s
+2025-12-14 17:38:36,847 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730316.8s
+2025-12-14 17:38:37,860 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730317.9s
+2025-12-14 17:38:38,865 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730318.9s
+2025-12-14 17:38:39,869 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730319.9s
+2025-12-14 17:38:40,871 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730320.9s
+2025-12-14 17:38:41,580 - websockets.client - DEBUG - < PING '' [0 bytes]
+2025-12-14 17:38:41,580 - websockets.client - DEBUG - > PONG '' [0 bytes]
+2025-12-14 17:38:41,877 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730321.9s
+2025-12-14 17:38:42,882 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730322.9s
+2025-12-14 17:38:43,888 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730323.9s
+2025-12-14 17:38:44,893 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730324.9s
+2025-12-14 17:38:45,901 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730325.9s
+2025-12-14 17:38:46,960 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730327.0s
+2025-12-14 17:38:47,963 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730328.0s
+2025-12-14 17:38:48,965 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730329.0s
+2025-12-14 17:38:49,927 - websockets.client - DEBUG - < PING '' [0 bytes]
+2025-12-14 17:38:49,927 - websockets.client - DEBUG - > PONG '' [0 bytes]
+2025-12-14 17:38:49,970 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730330.0s
+2025-12-14 17:38:50,976 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730331.0s
+2025-12-14 17:38:51,982 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730332.0s
+2025-12-14 17:38:53,003 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730333.0s
+2025-12-14 17:38:54,022 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730334.0s
+2025-12-14 17:38:55,041 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730335.0s
+2025-12-14 17:38:56,045 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730336.0s
+2025-12-14 17:38:57,049 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730337.0s
+2025-12-14 17:38:58,054 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730338.1s
+2025-12-14 17:38:59,061 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730339.1s
+2025-12-14 17:38:59,913 - websockets.client - DEBUG - > PING a3 60 4f f5 [binary, 4 bytes]
+2025-12-14 17:38:59,913 - websockets.client - DEBUG - % sent keepalive ping
+2025-12-14 17:38:59,914 - websockets.client - DEBUG - < EOF
+2025-12-14 17:38:59,914 - websockets.client - DEBUG - < EOF
+2025-12-14 17:38:59,914 - websockets.client - DEBUG - > EOF
+2025-12-14 17:38:59,914 - websockets.client - DEBUG - = connection is CLOSED
+2025-12-14 17:38:59,914 - websockets.client - DEBUG - x half-closing TCP connection
+2025-12-14 17:39:00,073 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730340.1s
+2025-12-14 17:39:01,097 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730341.1s
+2025-12-14 17:39:02,103 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730342.1s
+2025-12-14 17:39:03,114 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730343.1s
+2025-12-14 17:39:04,120 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730344.1s
+2025-12-14 17:39:05,122 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730345.1s
+2025-12-14 17:39:06,130 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730346.1s
+2025-12-14 17:39:07,135 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730347.1s
+2025-12-14 17:39:08,143 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730348.1s
+2025-12-14 17:39:09,148 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730349.1s
+2025-12-14 17:39:10,153 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730350.2s
+2025-12-14 17:39:11,165 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730351.2s
+2025-12-14 17:39:12,168 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730352.2s
+2025-12-14 17:39:13,171 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730353.2s
+2025-12-14 17:39:14,175 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730354.2s
+2025-12-14 17:39:15,180 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730355.2s
+2025-12-14 17:39:16,185 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730356.2s
+2025-12-14 17:39:17,237 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730357.2s
+2025-12-14 17:39:18,244 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730358.2s
+2025-12-14 17:39:19,250 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730359.3s
+2025-12-14 17:39:20,252 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730360.3s
+2025-12-14 17:39:21,255 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730361.3s
+2025-12-14 17:39:22,259 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730362.3s
+2025-12-14 17:39:23,265 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730363.3s
+2025-12-14 17:39:24,271 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730364.3s
+2025-12-14 17:39:25,281 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730365.3s
+2025-12-14 17:39:26,288 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730366.3s
+2025-12-14 17:39:27,295 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730367.3s
+2025-12-14 17:39:28,299 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730368.3s
+2025-12-14 17:39:29,301 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730369.3s
+2025-12-14 17:39:30,306 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730370.3s
+2025-12-14 17:39:31,312 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730371.3s
+2025-12-14 17:39:32,324 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730372.3s
+2025-12-14 17:39:33,331 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730373.3s
+2025-12-14 17:39:34,336 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730374.3s
+2025-12-14 17:39:35,343 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730375.3s
+2025-12-14 17:39:36,346 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730376.3s
+2025-12-14 17:39:37,349 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730377.3s
+2025-12-14 17:39:38,354 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730378.4s
+2025-12-14 17:39:39,359 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730379.4s
+2025-12-14 17:39:40,364 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730380.4s
+2025-12-14 17:39:41,376 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730381.4s
+2025-12-14 17:39:42,381 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730382.4s
+2025-12-14 17:39:43,386 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730383.4s
+2025-12-14 17:39:44,388 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730384.4s
+2025-12-14 17:39:45,391 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730385.4s
+2025-12-14 17:39:46,396 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730386.4s
+2025-12-14 17:39:47,454 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730387.5s
+2025-12-14 17:39:48,460 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730388.5s
+2025-12-14 17:39:49,465 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730389.5s
+2025-12-14 17:39:50,472 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730390.5s
+2025-12-14 17:39:51,475 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730391.5s
+2025-12-14 17:39:52,478 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730392.5s
+2025-12-14 17:39:53,481 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730393.5s
+2025-12-14 17:39:54,485 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730394.5s
+2025-12-14 17:39:55,492 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730395.5s
+2025-12-14 17:39:56,503 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730396.5s
+2025-12-14 17:39:57,514 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730397.5s
+2025-12-14 17:39:58,519 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730398.5s
+2025-12-14 17:39:59,534 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730399.5s
+2025-12-14 17:40:00,544 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730400.5s
+2025-12-14 17:40:01,547 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730401.5s
+2025-12-14 17:40:02,551 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730402.6s
+2025-12-14 17:40:03,557 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730403.6s
+2025-12-14 17:40:04,562 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730404.6s
+2025-12-14 17:40:05,566 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730405.6s
+2025-12-14 17:40:06,572 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730406.6s
+2025-12-14 17:40:07,576 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730407.6s
+2025-12-14 17:40:08,579 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730408.6s
+2025-12-14 17:40:09,581 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730409.6s
+2025-12-14 17:40:10,585 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730410.6s
+2025-12-14 17:40:11,590 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730411.6s
+2025-12-14 17:40:12,596 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730412.6s
+2025-12-14 17:40:13,601 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730413.6s
+2025-12-14 17:40:14,609 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730414.6s
+2025-12-14 17:40:15,614 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730415.6s
+2025-12-14 17:40:16,617 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730416.6s
+2025-12-14 17:40:17,619 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730417.6s
+2025-12-14 17:40:18,685 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730418.7s
+2025-12-14 17:40:19,697 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730419.7s
+2025-12-14 17:40:20,711 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730420.7s
+2025-12-14 17:40:21,723 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730421.7s
+2025-12-14 17:40:22,735 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730422.7s
+2025-12-14 17:40:23,740 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730423.7s
+2025-12-14 17:40:24,743 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730424.7s
+2025-12-14 17:40:25,745 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730425.7s
+2025-12-14 17:40:26,752 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730426.8s
+2025-12-14 17:40:27,766 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730427.8s
+2025-12-14 17:40:28,782 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730428.8s
+2025-12-14 17:40:29,799 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730429.8s
+2025-12-14 17:40:30,807 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730430.8s
+2025-12-14 17:40:31,813 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730431.8s
+2025-12-14 17:40:32,816 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730432.8s
+2025-12-14 17:40:33,818 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730433.8s
+2025-12-14 17:40:34,824 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730434.8s
+2025-12-14 17:40:35,843 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730435.8s
+2025-12-14 17:40:36,849 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730436.8s
+2025-12-14 17:40:37,860 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730437.9s
+2025-12-14 17:40:38,867 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730438.9s
+2025-12-14 17:40:39,870 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730439.9s
+2025-12-14 17:40:40,873 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730440.9s
+2025-12-14 17:40:41,876 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730441.9s
+2025-12-14 17:40:42,881 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730442.9s
+2025-12-14 17:40:43,888 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730443.9s
+2025-12-14 17:40:44,906 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730444.9s
+2025-12-14 17:40:45,910 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730445.9s
+2025-12-14 17:40:46,917 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730446.9s
+2025-12-14 17:40:47,920 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730447.9s
+2025-12-14 17:40:48,945 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730448.9s
+2025-12-14 17:40:49,949 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730449.9s
+2025-12-14 17:40:50,956 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730451.0s
+2025-12-14 17:40:51,961 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730452.0s
+2025-12-14 17:40:52,968 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730453.0s
+2025-12-14 17:40:53,983 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730454.0s
+2025-12-14 17:40:54,991 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730455.0s
+2025-12-14 17:40:56,003 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730456.0s
+2025-12-14 17:40:57,005 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730457.0s
+2025-12-14 17:40:58,008 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730458.0s
+2025-12-14 17:40:59,013 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730459.0s
+2025-12-14 17:41:00,019 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730460.0s
+2025-12-14 17:41:01,025 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730461.0s
+2025-12-14 17:41:02,031 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730462.0s
+2025-12-14 17:41:03,045 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730463.0s
+2025-12-14 17:41:04,050 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730464.1s
+2025-12-14 17:41:05,052 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730465.1s
+2025-12-14 17:41:06,056 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730466.1s
+2025-12-14 17:41:07,061 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730467.1s
+2025-12-14 17:41:08,077 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730468.1s
+2025-12-14 17:41:09,083 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730469.1s
+2025-12-14 17:41:10,090 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730470.1s
+2025-12-14 17:41:11,095 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730471.1s
+2025-12-14 17:41:12,099 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730472.1s
+2025-12-14 17:41:13,101 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730473.1s
+2025-12-14 17:41:14,104 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730474.1s
+2025-12-14 17:41:15,110 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730475.1s
+2025-12-14 17:41:16,121 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730476.1s
+2025-12-14 17:41:17,126 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730477.1s
+2025-12-14 17:41:18,136 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730478.1s
+2025-12-14 17:41:19,194 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730479.2s
+2025-12-14 17:41:20,198 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730480.2s
+2025-12-14 17:41:21,201 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730481.2s
+2025-12-14 17:41:22,205 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730482.2s
+2025-12-14 17:41:23,215 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730483.2s
+2025-12-14 17:41:24,230 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730484.2s
+2025-12-14 17:41:25,237 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730485.2s
+2025-12-14 17:41:26,245 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730486.2s
+2025-12-14 17:41:27,251 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730487.3s
+2025-12-14 17:41:28,260 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730488.3s
+2025-12-14 17:41:29,263 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730489.3s
+2025-12-14 17:41:30,266 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730490.3s
+2025-12-14 17:41:31,271 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730491.3s
+2025-12-14 17:41:32,277 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730492.3s
+2025-12-14 17:41:33,284 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730493.3s
+2025-12-14 17:41:34,294 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730494.3s
+2025-12-14 17:41:35,302 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730495.3s
+2025-12-14 17:41:36,311 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730496.3s
+2025-12-14 17:41:37,313 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730497.3s
+2025-12-14 17:41:38,317 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730498.3s
+2025-12-14 17:41:39,323 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730499.3s
+2025-12-14 17:41:40,329 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730500.3s
+2025-12-14 17:41:41,335 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730501.3s
+2025-12-14 17:41:42,341 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730502.3s
+2025-12-14 17:41:43,354 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730503.4s
+2025-12-14 17:41:44,357 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730504.4s
+2025-12-14 17:41:45,360 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730505.4s
+2025-12-14 17:41:46,365 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730506.4s
+2025-12-14 17:41:47,370 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730507.4s
+2025-12-14 17:41:48,376 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730508.4s
+2025-12-14 17:41:49,431 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730509.4s
+2025-12-14 17:41:50,437 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730510.4s
+2025-12-14 17:41:51,445 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730511.4s
+2025-12-14 17:41:52,447 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730512.4s
+2025-12-14 17:41:53,449 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730513.4s
+2025-12-14 17:41:54,454 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730514.5s
+2025-12-14 17:41:55,459 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730515.5s
+2025-12-14 17:41:56,468 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730516.5s
+2025-12-14 17:41:57,484 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730517.5s
+2025-12-14 17:41:58,492 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730518.5s
+2025-12-14 17:41:59,499 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730519.5s
+2025-12-14 17:42:00,505 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730520.5s
+2025-12-14 17:42:01,507 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730521.5s
+2025-12-14 17:42:02,511 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730522.5s
+2025-12-14 17:42:03,518 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730523.5s
+2025-12-14 17:42:04,527 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730524.5s
+2025-12-14 17:42:05,534 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730525.5s
+2025-12-14 17:42:06,541 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730526.5s
+2025-12-14 17:42:07,547 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730527.5s
+2025-12-14 17:42:08,557 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730528.6s
+2025-12-14 17:42:09,560 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730529.6s
+2025-12-14 17:42:10,564 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730530.6s
+2025-12-14 17:42:11,570 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730531.6s
+2025-12-14 17:42:12,574 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730532.6s
+2025-12-14 17:42:13,579 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730533.6s
+2025-12-14 17:42:14,583 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730534.6s
+2025-12-14 17:42:15,589 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730535.6s
+2025-12-14 17:42:16,591 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730536.6s
+2025-12-14 17:42:17,594 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730537.6s
+2025-12-14 17:42:18,598 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730538.6s
+2025-12-14 17:42:19,605 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730539.6s
+2025-12-14 17:42:20,671 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730540.7s
+2025-12-14 17:42:21,680 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730541.7s
+2025-12-14 17:42:22,687 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730542.7s
+2025-12-14 17:42:23,692 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730543.7s
+2025-12-14 17:42:24,695 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730544.7s
+2025-12-14 17:42:25,698 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730545.7s
+2025-12-14 17:42:26,702 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730546.7s
+2025-12-14 17:42:27,707 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730547.7s
+2025-12-14 17:42:28,716 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730548.7s
+2025-12-14 17:42:29,725 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730549.7s
+2025-12-14 17:42:30,738 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730550.7s
+2025-12-14 17:42:31,755 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730551.8s
+2025-12-14 17:42:32,759 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730552.8s
+2025-12-14 17:42:33,761 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730553.8s
+2025-12-14 17:42:34,768 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730554.8s
+2025-12-14 17:42:35,782 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730555.8s
+2025-12-14 17:42:36,805 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730556.8s
+2025-12-14 17:42:37,814 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730557.8s
+2025-12-14 17:42:38,827 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730558.8s
+2025-12-14 17:42:39,832 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730559.8s
+2025-12-14 17:42:40,834 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730560.8s
+2025-12-14 17:42:41,837 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730561.8s
+2025-12-14 17:42:42,841 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730562.8s
+2025-12-14 17:42:43,847 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730563.8s
+2025-12-14 17:42:44,858 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730564.9s
+2025-12-14 17:42:45,864 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730565.9s
+2025-12-14 17:42:46,869 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730566.9s
+2025-12-14 17:42:47,872 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730567.9s
+2025-12-14 17:42:48,875 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730568.9s
+2025-12-14 17:42:49,878 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730569.9s
+2025-12-14 17:42:50,887 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730570.9s
+2025-12-14 17:42:51,892 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730571.9s
+2025-12-14 17:42:52,898 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730572.9s
+2025-12-14 17:42:53,902 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730573.9s
+2025-12-14 17:42:54,908 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730574.9s
+2025-12-14 17:42:55,910 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730575.9s
+2025-12-14 17:42:56,913 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730576.9s
+2025-12-14 17:42:57,915 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730577.9s
+2025-12-14 17:42:58,920 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730578.9s
+2025-12-14 17:42:59,925 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730579.9s
+2025-12-14 17:43:00,931 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730580.9s
+2025-12-14 17:43:01,952 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730582.0s
+2025-12-14 17:43:02,965 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730583.0s
+2025-12-14 17:43:03,972 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730584.0s
+2025-12-14 17:43:04,976 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730585.0s
+2025-12-14 17:43:05,983 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730586.0s
+2025-12-14 17:43:06,994 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730587.0s
+2025-12-14 17:43:08,003 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730588.0s
+2025-12-14 17:43:09,010 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730589.0s
+2025-12-14 17:43:10,014 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730590.0s
+2025-12-14 17:43:11,028 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730591.0s
+2025-12-14 17:43:12,033 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730592.0s
+2025-12-14 17:43:13,036 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730593.0s
+2025-12-14 17:43:14,038 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730594.0s
+2025-12-14 17:43:15,048 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730595.0s
+2025-12-14 17:43:16,080 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730596.1s
+2025-12-14 17:43:17,094 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730597.1s
+2025-12-14 17:43:18,099 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730598.1s
+2025-12-14 17:43:19,105 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730599.1s
+2025-12-14 17:43:20,110 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730600.1s
+2025-12-14 17:43:21,174 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730601.2s
+2025-12-14 17:43:22,177 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730602.2s
+2025-12-14 17:43:23,216 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730603.2s
+2025-12-14 17:43:24,229 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730604.2s
+2025-12-14 17:43:25,242 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730605.2s
+2025-12-14 17:43:26,249 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730606.2s
+2025-12-14 17:43:27,258 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730607.3s
+2025-12-14 17:43:28,267 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730608.3s
+2025-12-14 17:43:29,270 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730609.3s
+2025-12-14 17:43:30,272 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730610.3s
+2025-12-14 17:43:31,280 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730611.3s
+2025-12-14 17:43:32,284 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730612.3s
+2025-12-14 17:43:33,289 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730613.3s
+2025-12-14 17:43:34,294 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730614.3s
+2025-12-14 17:43:35,300 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730615.3s
+2025-12-14 17:43:36,305 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730616.3s
+2025-12-14 17:43:37,307 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730617.3s
+2025-12-14 17:43:38,310 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730618.3s
+2025-12-14 17:43:39,319 - __main__ - INFO - Turn check: has_speech=False, transcripts=0, pause_pred=1.00, silence=1765730619.3s
