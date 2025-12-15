@@ -1,7 +1,13 @@
 export enum AppMode {
   INITIAL = 'INITIAL',
+  MODE_SELECT = 'MODE_SELECT',  // Choose between text and audio
   CONVERSATION = 'CONVERSATION',
   RENDER = 'RENDER'
+}
+
+export enum InteractionMode {
+  TEXT = 'TEXT',
+  AUDIO = 'AUDIO'
 }
 
 export enum TurnState {

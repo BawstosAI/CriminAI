@@ -1,5 +1,99 @@
-INFO:     Started server process [37986]
+INFO:     Started server process [10803]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8091 (Press CTRL+C to quit)
-INFO:     127.0.0.1:56658 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52592 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56724 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43204 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37748 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48546 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36420 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34338 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53796 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59532 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36640 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36640 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52676 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50168 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37714 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37722 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39948 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37356 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43960 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43960 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45084 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45090 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45090 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51844 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40086 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:40086 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:40086 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:35228 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40694 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40706 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52644 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60520 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53840 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56664 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53784 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53792 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43366 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:43366 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:43366 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:43368 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43808 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40272 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39768 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58752 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55470 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37254 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33324 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47668 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40248 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:40248 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:40248 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:40248 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39626 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39626 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46412 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:46412 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:46412 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:46428 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46514 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49540 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49544 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34000 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34012 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48472 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48474 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50246 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50250 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50266 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55384 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55388 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55398 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41110 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41114 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36784 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36790 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40980 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40986 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41910 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:41910 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:41910 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:37024 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42910 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37306 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60342 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58026 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39842 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54178 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54188 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54204 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54210 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54178 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54188 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54204 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54178 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54188 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57538 - "POST /v1/chat/completions HTTP/1.1" 200 OK
