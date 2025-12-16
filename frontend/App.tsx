@@ -71,19 +71,30 @@ const App: React.FC = () => {
     }
     if (msg.type === 'error') {
       setConnectionError(msg.text || 'Unknown error');
+      // Clear error after 3 seconds
+      setTimeout(() => setConnectionError(null), 3000);
     }
   };
 
   // Common state change handler
   const handleStateChange = (state: TurnState) => {
     setTurnState(state);
+    // Clear partial transcript when state changes to non-listening
+    if (state !== TurnState.LIVE) {
+      setPartialTranscript('');
+    }
   };
 
   // Common transcript handler
   const handleTranscript = (text: string, isUser: boolean, isPartial?: boolean) => {
     if (isPartial) {
-      // Update partial transcription display for audio mode
-      setPartialTranscript(prev => prev + ' ' + text);
+      // Show the latest word - replace rather than accumulate
+      setPartialTranscript(prev => {
+        const words = prev.trim().split(' ').filter(w => w);
+        words.push(text);
+        // Keep last 10 words to avoid growing too long
+        return words.slice(-10).join(' ');
+      });
       console.log('Partial transcription:', text);
       return;
     }

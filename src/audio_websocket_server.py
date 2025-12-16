@@ -1,7 +1,11 @@
 """Audio WebSocket server for forensic artist interaction.
 
-Handles audio streaming from frontend, transcription via Gradium STT,
-TTS responses via Gradium TTS, and LLM responses.
+Handles audio streaming from frontend, transcription via Kyutai STT,
+TTS responses via Kyutai TTS, and LLM responses.
+
+Uses local moshi-server instances:
+- STT: ws://localhost:8090/api/asr-streaming
+- TTS: ws://localhost:8089/api/tts_streaming
 """
 
 from __future__ import annotations
@@ -31,8 +35,8 @@ try:
 except ImportError:
     raise ImportError("Install openai: pip install openai")
 
-from gradium_stt import GradiumSTT, TranscriptionResult, VADResult
-from gradium_tts import TTSSession, TTS_SAMPLE_RATE
+from kyutai_stt import KyutaiSTT, TranscriptionResult, VADResult, STT_SAMPLE_RATE
+from kyutai_tts import KyutaiTTSSession, TTS_SAMPLE_RATE
 
 # Force unbuffered output for logging
 import sys
@@ -73,12 +77,13 @@ class AudioSession:
     questions_asked: int = 0
     is_complete: bool = False
     sketch_prompt: Optional[str] = None
-    stt: Optional[GradiumSTT] = None
+    stt: Optional[KyutaiSTT] = None
     stt_task: Optional[asyncio.Task] = None
     pending_transcription: str = ""
-    tts: Optional[TTSSession] = None
+    tts: Optional[KyutaiTTSSession] = None
     tts_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     is_speaking: bool = False
+    audio_chunks_received: int = 0
 
 
 class AudioArtistServer:
@@ -90,14 +95,16 @@ class AudioArtistServer:
         port: int = 8093,
         llm_host: str = "localhost",
         llm_port: int = 8091,
-        gradium_region: str = "eu",
-        tts_voice: str = "john",
+        stt_url: str = "ws://localhost:8090",
+        tts_url: str = "ws://localhost:8089",
+        tts_voice: str = "expresso_happy",
     ):
         self.host = host
         self.port = port
         self.llm_host = llm_host
         self.llm_port = llm_port
-        self.gradium_region = gradium_region
+        self.stt_url = stt_url
+        self.tts_url = tts_url
         self.tts_voice = tts_voice
         self.sessions: dict[str, AudioSession] = {}
         
@@ -147,8 +154,8 @@ class AudioArtistServer:
     
     def _init_tts(self, session: AudioSession):
         """Initialize TTS for a session."""
-        session.tts = TTSSession(
-            region=self.gradium_region,
+        session.tts = KyutaiTTSSession(
+            server_url=self.tts_url,
             voice=self.tts_voice,
         )
         logger.info(f"TTS initialized for session {session.session_id}")
@@ -205,7 +212,7 @@ class AudioArtistServer:
     async def _init_stt(self, websocket: ServerConnection, session: AudioSession):
         """Initialize the STT service for a session."""
         try:
-            stt = GradiumSTT(region=self.gradium_region)
+            stt = KyutaiSTT(server_url=self.stt_url)
             
             # Set up callbacks
             async def on_transcription(result: TranscriptionResult):
@@ -233,14 +240,14 @@ class AudioArtistServer:
             stt.on_transcription = sync_on_transcription
             stt.on_turn_complete = sync_on_turn_complete
             
-            # Connect to Gradium
+            # Connect to Kyutai STT
             if await stt.connect():
                 session.stt = stt
                 session.stt_task = asyncio.create_task(stt.receive_loop())
                 logger.info(f"STT initialized for session {session.session_id}")
                 await self._send_message(websocket, "stt_ready", "Speech recognition ready")
             else:
-                logger.error("Failed to connect to Gradium STT")
+                logger.error("Failed to connect to Kyutai STT")
                 
         except Exception as e:
             logger.exception(f"STT initialization error: {e}")
@@ -297,17 +304,32 @@ class AudioArtistServer:
             if audio_b64 and session.stt:
                 try:
                     audio_bytes = base64.b64decode(audio_b64)
+                    session.audio_chunks_received += 1
                     await session.stt.send_audio(audio_bytes)
                 except Exception as e:
                     logger.error(f"Audio decode error: {e}")
         
         elif msg_type == "end_turn":
             # User explicitly ended their turn (e.g., button press)
+            logger.info(f"End turn received. Audio chunks: {session.audio_chunks_received}")
+            
             if session.stt:
-                text = session.stt.get_current_transcription()
+                # Notify user we're processing
+                await self._send_message(websocket, "thinking", "Processing speech...")
+                
+                # Flush STT and wait for final transcription (handles model latency)
+                text = await session.stt.flush_and_get_transcription(timeout=4.0)
+                logger.info(f"Final transcription: '{text}'")
+                
                 if text:
                     session.stt.clear_transcription()
+                    session.audio_chunks_received = 0  # Reset counter
                     await self._process_user_turn(websocket, session, text)
+                else:
+                    logger.warning("No transcription available after flush")
+                    await self._send_message(websocket, "error", "No speech detected. Please speak and try again.")
+                    # Go back to listening state
+                    await self._send_message(websocket, "stt_ready", "Ready for speech")
         
         elif msg_type == "generate_image":
             # Generate the image
@@ -463,7 +485,9 @@ async def main():
     parser.add_argument("--port", type=int, default=8093)
     parser.add_argument("--llm-host", default=os.environ.get("LLM_HOST", "localhost"))
     parser.add_argument("--llm-port", type=int, default=int(os.environ.get("LLM_PORT", "8091")))
-    parser.add_argument("--region", choices=["eu", "us"], default="eu", help="Gradium server region")
+    parser.add_argument("--stt-url", default="ws://localhost:8090", help="Kyutai STT server URL")
+    parser.add_argument("--tts-url", default="ws://localhost:8089", help="Kyutai TTS server URL")
+    parser.add_argument("--voice", default="expresso_happy", help="TTS voice to use")
     args = parser.parse_args()
     
     server = AudioArtistServer(
@@ -471,7 +495,9 @@ async def main():
         port=args.port,
         llm_host=args.llm_host,
         llm_port=args.llm_port,
-        gradium_region=args.region,
+        stt_url=args.stt_url,
+        tts_url=args.tts_url,
+        tts_voice=args.voice,
     )
     await server.start()
 

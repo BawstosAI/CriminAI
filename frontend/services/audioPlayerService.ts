@@ -1,13 +1,13 @@
 /**
  * Audio Player Service - Plays PCM audio from the server
  * 
- * Handles streaming PCM audio playback from Gradium TTS:
- * - Sample Rate: 48000 Hz
+ * Handles streaming PCM audio playback from Kyutai TTS:
+ * - Sample Rate: 24000 Hz (Kyutai TTS output)
  * - Format: PCM 16-bit signed integer (little-endian)
  * - Channels: Mono
  */
 
-const TTS_SAMPLE_RATE = 48000;
+const TTS_SAMPLE_RATE = 24000;
 
 type PlaybackStateCallback = (isPlaying: boolean) => void;
 
