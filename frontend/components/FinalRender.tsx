@@ -9,6 +9,7 @@ interface FinalRenderProps {
 
 const FinalRender: React.FC<FinalRenderProps> = ({ videoUrl, imageUrl, onRestart }) => {
   const [showImage, setShowImage] = useState(false);
+  const [idleLevel, setIdleLevel] = useState(0.18);
 
   useEffect(() => {
     // Sequence: Show video loop first, then freeze on image after N seconds
@@ -17,6 +18,16 @@ const FinalRender: React.FC<FinalRenderProps> = ({ videoUrl, imageUrl, onRestart
     }, 5000); // 5 seconds of video before final static image
 
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    let tick = 0;
+    const pulse = setInterval(() => {
+      tick += 1;
+      setIdleLevel(0.16 + 0.06 * Math.sin(tick * 0.35));
+    }, 80);
+
+    return () => clearInterval(pulse);
   }, []);
 
   return (
@@ -28,7 +39,7 @@ const FinalRender: React.FC<FinalRenderProps> = ({ videoUrl, imageUrl, onRestart
         
         {/* Scale avatar down slightly to ensure it fits comfortably */}
         <div className="scale-75 md:scale-100 transform origin-center mb-2 md:mb-8">
-             <DetectiveAvatar isSpeaking={false} audioLevel={0} compact={true} />
+             <DetectiveAvatar isSpeaking={false} audioLevel={idleLevel} compact={true} />
         </div>
         
         <div className="mt-1 md:mt-4 text-green-500 text-[10px] md:text-xs font-mono animate-pulse text-center leading-tight mb-2 md:mb-6">

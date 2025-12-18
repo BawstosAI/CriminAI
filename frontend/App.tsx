@@ -4,6 +4,7 @@ import DetectiveAvatar from './components/DetectiveAvatar';
 import FinalRender from './components/FinalRender';
 import { AppMode, TurnState, ConversationMessage, InteractionMode, BackendMessage } from './types';
 import { backendService } from './services/backendService';
+import { audioPlayerService } from './services/audioPlayerService';
 
 const App: React.FC = () => {
   const [appMode, setAppMode] = useState<AppMode>(AppMode.INITIAL);
@@ -33,6 +34,16 @@ const App: React.FC = () => {
       inputRef.current?.focus();
     }
   }, [turnState, interactionMode]);
+
+  useEffect(() => {
+    audioPlayerService.setAudioLevelCallback((level) => {
+      setBotAudioLevel(level);
+    });
+
+    return () => {
+      audioPlayerService.setAudioLevelCallback(null);
+    };
+  }, []);
 
   const handleRestart = () => {
     backendService.disconnect();

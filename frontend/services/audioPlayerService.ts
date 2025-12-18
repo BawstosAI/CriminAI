@@ -11,6 +11,7 @@ const TTS_SAMPLE_RATE = 24000;
 const MIN_BUFFER_BEFORE_PLAY = 3; // Buffer a few chunks for smoother playback
 
 type PlaybackStateCallback = (isPlaying: boolean) => void;
+type AudioLevelCallback = (level: number) => void;
 
 class AudioPlayerService {
   private audioContext: AudioContext | null = null;
@@ -19,9 +20,11 @@ class AudioPlayerService {
   private isPlaying = false;
   private nextPlayTime = 0;
   private onPlaybackStateChange: PlaybackStateCallback | null = null;
+  private onAudioLevel: AudioLevelCallback | null = null;
   private isInitialized = false;
   private pendingChunks = 0;
   private activeTtsId: number | null = null;
+  private smoothedLevel = 0;
 
   /**
    * Initialize the audio context (call early, e.g., on user gesture)
@@ -49,6 +52,13 @@ class AudioPlayerService {
    */
   setPlaybackStateCallback(callback: PlaybackStateCallback) {
     this.onPlaybackStateChange = callback;
+  }
+
+  /**
+   * Set callback for TTS audio level updates
+   */
+  setAudioLevelCallback(callback: AudioLevelCallback | null) {
+    this.onAudioLevel = callback;
   }
 
   /**
@@ -115,6 +125,8 @@ class AudioPlayerService {
       const audioBuffer = this.audioContext.createBuffer(1, numSamples, TTS_SAMPLE_RATE);
       audioBuffer.getChannelData(0).set(float32);
 
+      this.updateAudioLevel(float32);
+
       this.audioQueue.push(audioBuffer);
       this.pendingChunks++;
 
@@ -173,6 +185,7 @@ class AudioPlayerService {
         } else if (this.activeSources.size === 0) {
           this.isPlaying = false;
           this.onPlaybackStateChange?.(false);
+          this.updateAudioLevel(null);
         }
       };
     }
@@ -202,6 +215,7 @@ class AudioPlayerService {
       this.nextPlayTime = 0;
     }
     this.onPlaybackStateChange?.(false);
+    this.updateAudioLevel(null);
   }
 
   /**
@@ -227,6 +241,31 @@ class AudioPlayerService {
 
   get playing(): boolean {
     return this.isPlaying;
+  }
+
+  private updateAudioLevel(samples: Float32Array | null) {
+    if (!this.onAudioLevel) return;
+
+    if (!samples || samples.length === 0) {
+      this.smoothedLevel = 0;
+      this.onAudioLevel(0);
+      return;
+    }
+
+    let sum = 0;
+    const stride = 64;
+    let count = 0;
+    for (let i = 0; i < samples.length; i += stride) {
+      const s = samples[i];
+      sum += s * s;
+      count += 1;
+    }
+    const rms = Math.sqrt(sum / Math.max(1, count));
+    const target = Math.min(1, rms * 3.5);
+
+    const alpha = target > this.smoothedLevel ? 0.6 : 0.2;
+    this.smoothedLevel = this.smoothedLevel + (target - this.smoothedLevel) * alpha;
+    this.onAudioLevel(this.smoothedLevel);
   }
 }
 

@@ -1,5 +1,7 @@
 # 🎨 AI Forensic Sketch Artist
 
+An expressive AI Forensic Artist agent with reactive animations and real-time sketching capabilities.
+
 A real-time voice-enabled AI system that interviews witnesses and generates forensic composite sketches using:
 
 - **Gemini** as the conversational AI brain (exposed as OpenAI-compatible API)
