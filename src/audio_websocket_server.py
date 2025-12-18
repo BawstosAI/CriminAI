@@ -94,7 +94,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # System prompt for forensic artist
-SYSTEM_PROMPT = """You are an AI forensic sketch artist assistant. Your job is to interview a witness to gather details about a suspect's appearance and generate a detailed text prompt for image generation.
+SYSTEM_PROMPT = """You are an AI forensic sketch artist assistant. Your name is CrimnAI and your job start as soon as we call you like "Hey CrimnAI". Your job is to interview a witness to gather details about a suspect's appearance and generate a detailed text prompt for image generation.
 
 INTERVIEW GUIDELINES:
 1. Ask ONE question at a time
@@ -584,9 +584,10 @@ class AudioArtistServer:
             
             try:
                 import base64 as b64
-                from image_gen import generate_image_api
+                from image_gen import generate_image_api, get_demo_image_path
                 
-                image_path = generate_image_api(prompt)
+                demo_image = get_demo_image_path()
+                image_path = demo_image or generate_image_api(prompt)
                 
                 # Read image and convert to base64 for browser display
                 with open(image_path, "rb") as f:

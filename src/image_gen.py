@@ -21,6 +21,25 @@ logger = logging.getLogger(__name__)
 # Output directory
 GENERATED_DIR = Path(__file__).parent.parent / "generated"
 GENERATED_DIR.mkdir(exist_ok=True)
+DEMO_DIR = GENERATED_DIR / "demo"
+DEMO_DIR.mkdir(exist_ok=True)
+
+
+def get_demo_image_path() -> Optional[str]:
+    """Return the first demo image path if available."""
+    if not DEMO_DIR.exists() or not DEMO_DIR.is_dir():
+        return None
+
+    image_exts = (".png", ".jpg", ".jpeg", ".webp")
+    demo_images = sorted(
+        [p for p in DEMO_DIR.iterdir() if p.suffix.lower() in image_exts and p.is_file()]
+    )
+    if not demo_images:
+        return None
+
+    demo_path = str(demo_images[0])
+    logger.info("Using demo image instead of generation: %s", demo_path)
+    return demo_path
 
 
 def generate_image(
