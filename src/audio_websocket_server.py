@@ -63,6 +63,7 @@ import base64
 import json
 import logging
 import os
+import math
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -79,6 +80,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 try:
     import websockets
     from websockets.asyncio.server import serve, ServerConnection
+    from websockets.protocol import State
 except ImportError:
     raise ImportError("Install websockets: pip install websockets")
 
@@ -113,7 +115,10 @@ START by greeting the witness and asking about the overall face shape."""
 # Audio configuration
 SAMPLE_RATE = 24000
 FRAME_SIZE = 1920  # 80ms at 24kHz
-PAUSE_PREDICTION_HEAD_INDEX = 1  # 1.0s pause head for semantic VAD
+PAUSE_PREDICTION_HEAD_INDEX = 2  # Align with moshi pause head used in unmute
+VAD_SPEECH_THRESHOLD = 0.015  # RMS threshold similar to frontend
+VAD_MIN_SPEECH_FRAMES = 1
+VAD_SILENCE_TIMEOUT_FRAMES = math.ceil(1200 / (FRAME_SIZE / SAMPLE_RATE * 1000))
 
 # Kyutai server configuration
 # Note: 
@@ -138,6 +143,7 @@ class Session:
     # Audio session state
     stt_ws: Optional[websockets.ClientConnection] = None
     stt_task: Optional[asyncio.Task] = None
+    stt_keepalive_task: Optional[asyncio.Task] = None
     client_ws: Optional[ServerConnection] = None
     current_transcript: str = ""
     is_listening: bool = False
@@ -145,6 +151,11 @@ class Session:
     tts_task: Optional[asyncio.Task] = None
     tts_generation: int = 0
     stt_speech_started: bool = False
+    # Lightweight VAD to trigger UX events even before STT emits words
+    vad_noise_floor: float = 0.005
+    vad_speech_frames: int = 0
+    vad_silence_frames: int = 0
+    vad_speaking: bool = False
 
 
 class AudioArtistServer:
@@ -246,6 +257,12 @@ class AudioArtistServer:
                     await session.stt_task
                 except asyncio.CancelledError:
                     pass
+            if session.stt_keepalive_task and not session.stt_keepalive_task.done():
+                session.stt_keepalive_task.cancel()
+                try:
+                    await session.stt_keepalive_task
+                except asyncio.CancelledError:
+                    pass
             if session.stt_ws:
                 try:
                     await session.stt_ws.close()
@@ -259,6 +276,7 @@ class AudioArtistServer:
             
             # Start receiving transcriptions
             session.stt_task = asyncio.create_task(self._receive_stt_transcriptions(session))
+            session.stt_keepalive_task = asyncio.create_task(self._stt_keepalive(session))
             
             logger.info("STT connection established")
         except Exception as e:
@@ -275,7 +293,7 @@ class AudioArtistServer:
                     prs = data.get("prs")
                     if prs and len(prs) > PAUSE_PREDICTION_HEAD_INDEX:
                         pause_prediction = prs[PAUSE_PREDICTION_HEAD_INDEX]
-                        if pause_prediction > 0.5 and session.stt_speech_started:
+                        if pause_prediction > 0.6 and session.stt_speech_started:
                             session.stt_speech_started = False
                             if session.client_ws:
                                 await self._send_message(session.client_ws, "stt_speech_end", None)
@@ -296,7 +314,7 @@ class AudioArtistServer:
                         
         except websockets.ConnectionClosed:
             logger.info("STT connection closed")
-            if not session.client_ws or session.client_ws.closed:
+            if not session.client_ws or session.client_ws.state in (State.CLOSING, State.CLOSED):
                 return
             try:
                 await self._init_stt(session)
@@ -304,6 +322,75 @@ class AudioArtistServer:
                 logger.error(f"Failed to reinitialize STT after closure: {e}")
         except Exception as e:
             logger.error(f"Error receiving STT transcriptions: {e}")
+
+    async def _stt_keepalive(self, session: Session, interval: float = 20.0):
+        """Send periodic pings to keep the STT websocket alive."""
+        try:
+            while session.stt_ws:
+                await asyncio.sleep(interval)
+                if not session.stt_ws or session.stt_ws.closed:
+                    break
+                try:
+                    pong_waiter = session.stt_ws.ping()
+                    await asyncio.wait_for(pong_waiter, timeout=10.0)
+                except asyncio.TimeoutError:
+                    logger.warning("STT keepalive ping timed out; reconnecting")
+                    await self._init_stt(session)
+                    break
+                except websockets.ConnectionClosed:
+                    logger.info("STT keepalive detected closed connection; reconnecting")
+                    await self._init_stt(session)
+                    break
+                except Exception as e:
+                    logger.error(f"STT keepalive error: {e}")
+                    break
+        except asyncio.CancelledError:
+            pass
+
+    async def _update_local_vad(self, session: Session, pcm_float32: np.ndarray):
+        """Lightweight VAD to trigger UX events before STT emits words."""
+        rms = float(np.sqrt(np.mean(np.square(pcm_float32), dtype=np.float64)))
+        if not session.vad_speaking:
+            session.vad_noise_floor = session.vad_noise_floor * 0.98 + rms * 0.02
+
+        threshold = max(VAD_SPEECH_THRESHOLD, session.vad_noise_floor * 3.5)
+        speech_detected = rms > threshold
+
+        if speech_detected:
+            session.vad_speech_frames += 1
+            session.vad_silence_frames = 0
+            if not session.vad_speaking and session.vad_speech_frames >= VAD_MIN_SPEECH_FRAMES:
+                session.vad_speaking = True
+                if not session.stt_speech_started and session.client_ws:
+                    session.stt_speech_started = True
+                    await self._send_message(session.client_ws, "stt_speech_start", None)
+        else:
+            session.vad_speech_frames = 0
+            if session.vad_speaking:
+                session.vad_silence_frames += 1
+                if session.vad_silence_frames >= VAD_SILENCE_TIMEOUT_FRAMES:
+                    session.vad_speaking = False
+                    session.vad_silence_frames = 0
+                    if session.stt_speech_started and session.client_ws:
+                        session.stt_speech_started = False
+                        await self._send_message(session.client_ws, "stt_speech_end", None)
+
+    async def _flush_stt_audio(self, session: Session, duration_s: float = 0.5):
+        """Send a short burst of silence to let STT finalize decoding."""
+        if not session.stt_ws:
+            return
+        num_frames = max(1, int(math.ceil(duration_s * SAMPLE_RATE / FRAME_SIZE)))
+        silence = [0.0] * FRAME_SIZE
+        msg = msgpack.packb({"type": "Audio", "pcm": silence}, use_bin_type=True, use_single_float=True)
+        for _ in range(num_frames):
+            try:
+                await session.stt_ws.send(msg)
+            except websockets.ConnectionClosed:
+                logger.info("STT websocket closed while flushing silence")
+                break
+            except Exception as e:
+                logger.error(f"Error sending silence to STT: {e}")
+                break
 
     async def _stop_tts(self, session: Session, *, send_end_event: bool = True):
         """Stop any active TTS playback task."""
@@ -338,6 +425,7 @@ class AudioArtistServer:
         tts_url = f"{TTS_SERVER_URL}/api/tts_streaming?{urlencode(params)}"
         headers = {"kyutai-api-key": KYUTAI_API_KEY}
 
+        receiver_task = None
         try:
             logger.info(f"[TTS:{generation_id}] Connecting to {tts_url}")
             async with websockets.connect(tts_url, additional_headers=headers) as tts_ws:
@@ -381,11 +469,23 @@ class AudioArtistServer:
 
         except asyncio.CancelledError:
             logger.info(f"[TTS:{generation_id}] Stream cancelled")
+            if receiver_task and not receiver_task.done():
+                receiver_task.cancel()
+                try:
+                    await receiver_task
+                except asyncio.CancelledError:
+                    pass
             raise
         except Exception as e:
             logger.error(f"[TTS:{generation_id}] Error during synthesis: {e}")
             await self._send_error(websocket, f"TTS error: {e}")
         finally:
+            if receiver_task and not receiver_task.done():
+                receiver_task.cancel()
+                try:
+                    await receiver_task
+                except asyncio.CancelledError:
+                    pass
             session.tts_task = None
             if session.is_speaking and session.tts_generation == generation_id:
                 session.is_speaking = False
@@ -423,6 +523,8 @@ class AudioArtistServer:
                 # Assume the stream is done after EOS if no audio arrives for a while
                 break
             except websockets.ConnectionClosed:
+                break
+            except asyncio.CancelledError:
                 break
 
             msg = msgpack.unpackb(message_bytes, raw=False)
@@ -487,6 +589,9 @@ class AudioArtistServer:
                 pcm_int16 = np.frombuffer(audio_bytes, dtype=np.int16)
                 pcm_float32 = pcm_int16.astype(np.float32) / 32768.0
                 
+                # Local VAD to quickly notify the UI that the user is speaking
+                await self._update_local_vad(session, pcm_float32)
+                
                 # Send to STT server
                 if session.stt_ws:
                     chunk = {"type": "Audio", "pcm": pcm_float32.tolist()}
@@ -503,11 +608,7 @@ class AudioArtistServer:
         
         elif msg_type == "end_turn":
             # User finished speaking, process transcript
-            if session.stt_ws:
-                try:
-                    await session.stt_ws.send(msgpack.packb({"type": "Eos"}))
-                except Exception as e:
-                    logger.error(f"Error signaling STT EOS: {e}")
+            await self._flush_stt_audio(session)
             if session.current_transcript.strip():
                 transcript = session.current_transcript.strip()
                 session.current_transcript = ""
@@ -680,6 +781,12 @@ class AudioArtistServer:
             session.stt_task.cancel()
             try:
                 await session.stt_task
+            except asyncio.CancelledError:
+                pass
+        if session.stt_keepalive_task and not session.stt_keepalive_task.done():
+            session.stt_keepalive_task.cancel()
+            try:
+                await session.stt_keepalive_task
             except asyncio.CancelledError:
                 pass
     
