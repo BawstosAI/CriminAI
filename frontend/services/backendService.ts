@@ -30,6 +30,8 @@ class BackendService {
   private lastWordAt = 0;
   private endCheckTimer: number | null = null;
   private sttSpeechActive = false;
+  private botSpeaking = false;
+  private interruptSentThisUtterance = false;
 
   /**
    * Connect to the text WebSocket server
@@ -177,6 +179,11 @@ class BackendService {
               this.onStateChange(TurnState.LIVE);
             }
           }
+          // Only interrupt the bot once real speech (words) arrive
+          if (this.botSpeaking && !this.interruptSentThisUtterance) {
+            this.interruptSentThisUtterance = true;
+            this.triggerInterrupt();
+          }
           if (this.endCheckTimer) {
             clearTimeout(this.endCheckTimer);
             this.endCheckTimer = null;
@@ -219,6 +226,8 @@ class BackendService {
       case 'bot_speaking_start':
         // Audio mode: Bot starting to speak
         console.log('BackendService: Bot speaking start - audio player ready');
+        this.botSpeaking = true;
+        this.interruptSentThisUtterance = false;
         this.userSpeaking = false;
         this.hasTranscriptThisTurn = false;
         if (this.onStateChange) {
@@ -237,6 +246,7 @@ class BackendService {
       case 'bot_speaking_end':
         // Audio mode: Bot finished speaking
         console.log('BackendService: Bot speaking end');
+        this.botSpeaking = false;
         if (audioPlayerService.playing) {
           this.waitingForPlaybackEnd = true;
         } else if (!this.userSpeaking && this.onStateChange) {
@@ -306,7 +316,6 @@ class BackendService {
         if (this.onStateChange) {
           this.onStateChange(TurnState.LIVE);
         }
-        this.triggerInterrupt();
         break;
 
       case 'stt_speech_end':
@@ -430,15 +439,13 @@ class BackendService {
   }
 
   private handleSpeechState(state: 'start' | 'end') {
-    // VAD is only a guard; STT events are primary. Use it to barge-in fast.
+    // VAD is only a guard; STT events are primary. Do NOT interrupt bot on noise.
     if (state === 'start') {
       if (this.speechEndTimer) {
         clearTimeout(this.speechEndTimer);
         this.speechEndTimer = null;
       }
-      if (audioPlayerService.playing) {
-        this.triggerInterrupt();
-      }
+      // Let STT-driven stt_speech_start be the only source of bot interruption
     } else {
       if (this.speechEndTimer) {
         clearTimeout(this.speechEndTimer);

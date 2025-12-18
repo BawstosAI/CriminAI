@@ -435,7 +435,7 @@ const App: React.FC = () => {
               marginBottom: interactionMode === InteractionMode.TEXT ? '25vh' : '0'
             }}>
                <DetectiveAvatar 
-                  isSpeaking={turnState === TurnState.BOT_SPEAKING}
+                  isSpeaking={turnState === TurnState.BOT_SPEAKING || botAudioLevel > 0.02}
                   audioLevel={botAudioLevel}
                />
                
