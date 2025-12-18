@@ -428,7 +428,7 @@ const App: React.FC = () => {
         
         {appMode === AppMode.INITIAL && renderModeSelection()}
 
-        {appMode === AppMode.CONVERSATION && (
+        {appMode === AppMode.CONVERSATION && !renderOverlay && (
           <div className="w-full h-full flex items-center justify-center">
             {/* The Detective */}
             <div className="relative transform transition-transform duration-1000" style={{
@@ -449,22 +449,46 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Keep the render view as an overlay so chatting never stops */}
-        {renderOverlay && (
-          <div className="absolute inset-x-2 bottom-2 md:inset-auto md:bottom-6 md:right-6 md:w-[520px] md:h-[70vh] w-[calc(100%-16px)] h-[60vh] z-40 shadow-[0_0_20px_rgba(0,255,0,0.25)] border border-green-800 bg-black/90 backdrop-blur">
-            <button
-              className="absolute top-2 right-2 text-[10px] font-mono text-green-400 px-2 py-1 border border-green-700 hover:bg-green-900/40"
-              onClick={() => setRenderOverlay(false)}
-            >
-              CONTINUE CHAT
-            </button>
-            <FinalRender 
-              videoUrl={finalMedia.video}
-              imageUrl={finalMedia.image}
-              onRestart={handleRestart}
-            />
+        {appMode === AppMode.CONVERSATION && renderOverlay && (
+          <div className="w-full h-full flex flex-col md:flex-row relative z-10">
+            {/* Left column: compact bot + live convo UI */}
+            <div className="w-full md:w-[34%] lg:w-[32%] h-full border-r border-green-900 bg-black/80 relative flex flex-col items-center">
+              <div className="w-full flex-1 flex flex-col items-center justify-start pt-6">
+                <DetectiveAvatar 
+                  isSpeaking={turnState === TurnState.BOT_SPEAKING || botAudioLevel > 0.02}
+                  audioLevel={botAudioLevel}
+                  compact={true}
+                />
+                <div className="mt-2 text-[10px] md:text-xs text-green-500 font-mono tracking-widest">
+                  LIVE CHANNEL
+                </div>
+              </div>
+              <div className="w-full relative flex-1">
+                {interactionMode === InteractionMode.TEXT && renderTextChatUI()}
+                {interactionMode === InteractionMode.AUDIO && renderAudioUI()}
+              </div>
+            </div>
+
+            {/* Right column: full-height render */}
+            <div className="flex-1 h-full bg-black relative">
+              <FinalRender 
+                videoUrl={finalMedia.video}
+                imageUrl={finalMedia.image}
+                onRestart={handleRestart}
+                hideStatusPanel={true}
+              />
+              <button
+                className="absolute top-3 right-3 text-[10px] font-mono text-green-400 px-3 py-1 border border-green-700 hover:bg-green-900/40"
+                onClick={() => setRenderOverlay(false)}
+              >
+                CLOSE RENDER
+              </button>
+            </div>
           </div>
         )}
+
+        {/* Keep the render view as an overlay so chatting never stops */}
+        {/* Removed modal overlay: render now lives in split view when active */}
 
       </main>
 
