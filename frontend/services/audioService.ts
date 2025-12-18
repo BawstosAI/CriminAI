@@ -11,7 +11,7 @@
 const TARGET_SAMPLE_RATE = 24000;
 const FRAME_SIZE = 1920; // 80ms at 24kHz
 const FRAME_DURATION_MS = 80;
-const SPEECH_THRESHOLD = 0.015;
+const SPEECH_THRESHOLD = 0.01;
 const MIN_SPEECH_FRAMES = 1; // 80ms above threshold to start speech
 const SILENCE_TIMEOUT_FRAMES = Math.ceil(1200 / FRAME_DURATION_MS); // ~1.2s silence to end speech
 
@@ -27,6 +27,8 @@ class AudioService {
   private onAudioChunk: AudioCallback | null = null;
   private onSpeechStateChange: SpeechCallback | null = null;
   private isCapturing = false;
+  private lastOnAudioChunk: AudioCallback | null = null;
+  private lastOnSpeechStateChange: SpeechCallback | null = null;
 
   /**
    * Request microphone permission and set up audio capture
@@ -74,9 +76,14 @@ class AudioService {
 
     this.onAudioChunk = onAudioChunk;
     this.onSpeechStateChange = onSpeechStateChange || null;
+    this.lastOnAudioChunk = onAudioChunk;
+    this.lastOnSpeechStateChange = onSpeechStateChange || null;
     this.isCapturing = true;
 
     try {
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
       // Create source node from microphone
       this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
 
@@ -201,6 +208,24 @@ class AudioService {
     }
 
     console.log('AudioService: Disposed');
+  }
+
+  /**
+   * Ensure the audio context is running (e.g., after autoplay policies pause it).
+   */
+  async ensureActive(): Promise<void> {
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      try {
+        await this.audioContext.resume();
+        console.log('AudioService: Resumed suspended AudioContext');
+      } catch (err) {
+        console.warn('AudioService: Failed to resume AudioContext', err);
+      }
+    }
+    // If for some reason we lost capture, restart with last callbacks
+    if (!this.isCapturing && this.lastOnAudioChunk) {
+      await this.startCapture(this.lastOnAudioChunk, this.lastOnSpeechStateChange || undefined);
+    }
   }
 
   /**

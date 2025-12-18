@@ -188,6 +188,7 @@ class BackendService {
         // Audio mode: STT is ready, start capturing
         console.log('BackendService: STT ready, starting audio capture');
         this.startAudioCapture();
+        audioService.ensureActive();
         if (this.onStateChange) {
           this.onStateChange(TurnState.LIVE);
         }
@@ -242,6 +243,7 @@ class BackendService {
           this.waitingForPlaybackEnd = false;
           this.onStateChange(TurnState.LIVE);
         }
+        audioService.ensureActive();
         break;
 
       case 'audio':
@@ -300,6 +302,7 @@ class BackendService {
         console.log('BackendService: STT speech start');
         this.sttSpeechActive = true;
         this.hasTranscriptThisTurn = false;
+        audioService.ensureActive();
         if (this.onStateChange) {
           this.onStateChange(TurnState.LIVE);
         }

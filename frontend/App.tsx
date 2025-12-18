@@ -19,6 +19,7 @@ const App: React.FC = () => {
   const [sketchPrompt, setSketchPrompt] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [partialTranscript, setPartialTranscript] = useState<string>('');
+  const [renderOverlay, setRenderOverlay] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -59,6 +60,7 @@ const App: React.FC = () => {
     setSketchPrompt(null);
     setConnectionError(null);
     setPartialTranscript('');
+    setRenderOverlay(false);
   };
 
   const selectMode = (mode: InteractionMode) => {
@@ -75,7 +77,7 @@ const App: React.FC = () => {
     console.log('Message:', msg);
     if (msg.type === 'final_render_ready' && msg.image_url) {
       setFinalMedia({ image: msg.image_url });
-      setAppMode(AppMode.RENDER);
+      setRenderOverlay(true);
     }
     if (msg.sketch_prompt) {
       setSketchPrompt(msg.sketch_prompt);
@@ -128,6 +130,7 @@ const App: React.FC = () => {
 
   const startTextInteraction = async () => {
     setConnectionError(null);
+    // Keep UI interactive even while the backend spins up
     setTurnState(TurnState.PROCESSING);
     
     const connected = await backendService.connect(
@@ -167,7 +170,7 @@ const App: React.FC = () => {
   };
 
   const handleSendMessage = () => {
-    if (!inputText.trim() || turnState === TurnState.PROCESSING) return;
+    if (!inputText.trim()) return;
     
     backendService.sendTextMessage(inputText.trim());
     setInputText('');
@@ -184,6 +187,7 @@ const App: React.FC = () => {
   const handleGenerateImage = () => {
     if (sketchPrompt) {
       backendService.requestImageGeneration(sketchPrompt);
+      // Keep conversation flowing; status indicator will still show processing
       setTurnState(TurnState.PROCESSING);
     }
   };
@@ -272,7 +276,7 @@ const App: React.FC = () => {
           <p className="text-yellow-300 font-mono text-sm">{sketchPrompt}</p>
           <button
             onClick={handleGenerateImage}
-            disabled={turnState === TurnState.PROCESSING}
+            disabled={!isConnected}
             className="mt-2 px-4 py-1 bg-yellow-600/30 hover:bg-yellow-600/50 border border-yellow-500 text-yellow-300 font-mono text-xs disabled:opacity-50"
           >
             {turnState === TurnState.PROCESSING ? '⏳ GENERATING...' : '🎨 GENERATE IMAGE'}
@@ -302,13 +306,13 @@ const App: React.FC = () => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={turnState === TurnState.PROCESSING || !isConnected}
+            disabled={!isConnected}
             placeholder={isConnected ? "Describe the suspect..." : "Connecting..."}
             className="flex-1 bg-black/80 border border-green-500/50 px-4 py-2 font-mono text-sm text-green-400 placeholder-green-700 focus:outline-none focus:border-green-400 disabled:opacity-50"
           />
           <button
             onClick={handleSendMessage}
-            disabled={!inputText.trim() || turnState === TurnState.PROCESSING || !isConnected}
+            disabled={!inputText.trim() || !isConnected}
             className="px-6 py-2 bg-green-900/30 border border-green-500 hover:bg-green-700/30 font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             SEND
@@ -389,7 +393,7 @@ const App: React.FC = () => {
               backendService.endUserTurn();
               setPartialTranscript('');
             }}
-            disabled={turnState !== TurnState.LIVE}
+            disabled={!isConnected}
             className="px-6 py-2 bg-blue-900/40 border border-blue-500 hover:bg-blue-700/40 font-mono text-sm text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             📤 SEND MESSAGE
@@ -445,12 +449,21 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {appMode === AppMode.RENDER && (
-          <FinalRender 
-            videoUrl={finalMedia.video}
-            imageUrl={finalMedia.image}
-            onRestart={handleRestart}
-          />
+        {/* Keep the render view as an overlay so chatting never stops */}
+        {renderOverlay && (
+          <div className="absolute inset-x-2 bottom-2 md:inset-auto md:bottom-6 md:right-6 md:w-[520px] md:h-[70vh] w-[calc(100%-16px)] h-[60vh] z-40 shadow-[0_0_20px_rgba(0,255,0,0.25)] border border-green-800 bg-black/90 backdrop-blur">
+            <button
+              className="absolute top-2 right-2 text-[10px] font-mono text-green-400 px-2 py-1 border border-green-700 hover:bg-green-900/40"
+              onClick={() => setRenderOverlay(false)}
+            >
+              CONTINUE CHAT
+            </button>
+            <FinalRender 
+              videoUrl={finalMedia.video}
+              imageUrl={finalMedia.image}
+              onRestart={handleRestart}
+            />
+          </div>
         )}
 
       </main>

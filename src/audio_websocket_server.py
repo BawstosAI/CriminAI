@@ -116,7 +116,7 @@ START by greeting the witness and asking about the overall face shape."""
 SAMPLE_RATE = 24000
 FRAME_SIZE = 1920  # 80ms at 24kHz
 PAUSE_PREDICTION_HEAD_INDEX = 2  # Align with moshi pause head used in unmute
-VAD_SPEECH_THRESHOLD = 0.015  # RMS threshold similar to frontend
+VAD_SPEECH_THRESHOLD = 0.01  # Lower threshold to react faster to speech
 VAD_MIN_SPEECH_FRAMES = 1
 VAD_SILENCE_TIMEOUT_FRAMES = math.ceil(1200 / (FRAME_SIZE / SAMPLE_RATE * 1000))
 

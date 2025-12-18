@@ -87,8 +87,9 @@ const DetectiveAvatar: React.FC<DetectiveAvatarProps> = ({ isSpeaking, audioLeve
     const mouthCenterY = 0.5 + swayY;
     const mouthLevel = isSpeakingRef.current ? speakLevel : 0;
     const mouthActive = isSpeakingRef.current && mouthLevel > 0.01;
-    const waveAmplitude = mouthActive ? (0.01 + mouthLevel * 0.08) : 0;
-    const waveThickness = mouthActive ? (0.005 + mouthLevel * 0.045) : 0;
+    const mouthScale = compact ? 1.4 : 1.0;
+    const waveAmplitude = mouthActive ? (0.012 * mouthScale + mouthLevel * 0.08 * mouthScale) : 0;
+    const waveThickness = mouthActive ? (0.006 * mouthScale + mouthLevel * 0.045 * mouthScale) : 0;
     const lobes = 4.5;
 
     let inMouth = false;
