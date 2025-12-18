@@ -136,6 +136,7 @@ class Session:
     
     # Audio session state
     stt_ws: Optional[websockets.ClientConnection] = None
+    stt_task: Optional[asyncio.Task] = None
     client_ws: Optional[ServerConnection] = None
     current_transcript: str = ""
     is_listening: bool = False
@@ -237,6 +238,17 @@ class AudioArtistServer:
     async def _init_stt(self, session: Session):
         """Initialize STT WebSocket connection to moshi-server."""
         try:
+            if session.stt_task and not session.stt_task.done():
+                session.stt_task.cancel()
+                try:
+                    await session.stt_task
+                except asyncio.CancelledError:
+                    pass
+            if session.stt_ws:
+                try:
+                    await session.stt_ws.close()
+                except Exception:
+                    pass
             stt_url = f"{STT_SERVER_URL}/api/asr-streaming"
             headers = {"kyutai-api-key": KYUTAI_API_KEY}
             
@@ -244,7 +256,7 @@ class AudioArtistServer:
             session.stt_ws = await websockets.connect(stt_url, additional_headers=headers)
             
             # Start receiving transcriptions
-            asyncio.create_task(self._receive_stt_transcriptions(session))
+            session.stt_task = asyncio.create_task(self._receive_stt_transcriptions(session))
             
             logger.info("STT connection established")
         except Exception as e:
@@ -271,6 +283,12 @@ class AudioArtistServer:
                         
         except websockets.ConnectionClosed:
             logger.info("STT connection closed")
+            if not session.client_ws or session.client_ws.closed:
+                return
+            try:
+                await self._init_stt(session)
+            except Exception as e:
+                logger.error(f"Failed to reinitialize STT after closure: {e}")
         except Exception as e:
             logger.error(f"Error receiving STT transcriptions: {e}")
 
@@ -460,12 +478,23 @@ class AudioArtistServer:
                 if session.stt_ws:
                     chunk = {"type": "Audio", "pcm": pcm_float32.tolist()}
                     msg = msgpack.packb(chunk, use_bin_type=True, use_single_float=True)
-                    await session.stt_ws.send(msg)
+                    try:
+                        await session.stt_ws.send(msg)
+                    except websockets.ConnectionClosed:
+                        logger.warning("STT websocket closed during audio send; reinitializing")
+                        await self._init_stt(session)
+                    except Exception as e:
+                        logger.error(f"Error forwarding audio to STT: {e}")
             except Exception as e:
                 logger.error(f"Error processing audio chunk: {e}")
         
         elif msg_type == "end_turn":
             # User finished speaking, process transcript
+            if session.stt_ws:
+                try:
+                    await session.stt_ws.send(msgpack.packb({"type": "Eos"}))
+                except Exception as e:
+                    logger.error(f"Error signaling STT EOS: {e}")
             if session.current_transcript.strip():
                 transcript = session.current_transcript.strip()
                 session.current_transcript = ""
@@ -528,6 +557,8 @@ class AudioArtistServer:
                 except Exception as e:
                     logger.exception(f"LLM error: {e}")
                     await self._send_error(websocket, f"LLM error: {e}")
+            else:
+                await self._send_message(websocket, "no_transcript", None)
         
         elif msg_type == "generate_image":
             # User wants to generate the image
@@ -566,6 +597,10 @@ class AudioArtistServer:
         
         elif msg_type == "ping":
             await self._send_message(websocket, "pong", None)
+        
+        elif msg_type == "user_interrupt":
+            logger.info("User interrupt received; stopping TTS")
+            await self._stop_tts(session)
     
     async def _synthesize_and_send(
         self,
@@ -627,6 +662,12 @@ class AudioArtistServer:
                 await session.stt_ws.close()
         except:
             pass
+        if session.stt_task and not session.stt_task.done():
+            session.stt_task.cancel()
+            try:
+                await session.stt_task
+            except asyncio.CancelledError:
+                pass
     
     async def start(self):
         """Start the WebSocket server."""

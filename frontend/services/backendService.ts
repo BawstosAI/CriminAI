@@ -24,6 +24,8 @@ class BackendService {
   private maxReconnectAttempts = 3;
   private isAudioMode = false;
   private waitingForPlaybackEnd = false;
+  private userSpeaking = false;
+  private speechEndTimer: number | null = null;
 
   /**
    * Connect to the text WebSocket server
@@ -65,7 +67,7 @@ class BackendService {
 
     audioPlayerService.setPlaybackStateCallback((isPlaying) => {
       if (!this.isAudioMode) return;
-      if (!isPlaying && this.waitingForPlaybackEnd) {
+      if (!isPlaying && this.waitingForPlaybackEnd && !this.userSpeaking) {
         this.waitingForPlaybackEnd = false;
         if (this.onStateChange) {
           this.onStateChange(TurnState.LIVE);
@@ -216,7 +218,7 @@ class BackendService {
         console.log('BackendService: Bot speaking end');
         if (audioPlayerService.playing) {
           this.waitingForPlaybackEnd = true;
-        } else if (this.onStateChange) {
+        } else if (!this.userSpeaking && this.onStateChange) {
           this.waitingForPlaybackEnd = false;
           this.onStateChange(TurnState.LIVE);
         }
@@ -265,6 +267,13 @@ class BackendService {
         }
         break;
 
+      case 'no_transcript':
+        console.log('BackendService: No transcript detected, resuming listening');
+        if (this.onStateChange) {
+          this.onStateChange(TurnState.LIVE);
+        }
+        break;
+
       case 'pong':
         // Heartbeat response
         break;
@@ -304,9 +313,12 @@ class BackendService {
   private startAudioCapture(): void {
     if (!this.isAudioMode) return;
 
-    audioService.startCapture((audioBase64: string) => {
-      this.sendAudioChunk(audioBase64);
-    });
+    audioService.startCapture(
+      (audioBase64: string) => {
+        this.sendAudioChunk(audioBase64);
+      },
+      (state) => this.handleSpeechState(state)
+    );
   }
 
   /**
@@ -339,6 +351,7 @@ class BackendService {
     if (this.isAudioMode) {
       audioService.stopCapture();
     }
+    this.userSpeaking = false;
   }
 
   endSession() {
@@ -353,6 +366,7 @@ class BackendService {
     this._connected = false;
     this.ws = null;
     this.isAudioMode = false;
+    this.userSpeaking = false;
   }
 
   disconnect() {
@@ -361,6 +375,42 @@ class BackendService {
       audioPlayerService.dispose();
     }
     this.reset();
+  }
+
+  private handleSpeechState(state: 'start' | 'end') {
+    if (state === 'start') {
+      if (this.speechEndTimer) {
+        clearTimeout(this.speechEndTimer);
+        this.speechEndTimer = null;
+      }
+      if (!this.userSpeaking) {
+        this.userSpeaking = true;
+        if (this.onStateChange) {
+          this.onStateChange(TurnState.LIVE);
+        }
+        if (audioPlayerService.playing) {
+          audioPlayerService.stop();
+        }
+        this.sendUserInterrupt();
+      }
+    } else if (this.userSpeaking) {
+      if (this.speechEndTimer) {
+        clearTimeout(this.speechEndTimer);
+      }
+      this.speechEndTimer = window.setTimeout(() => {
+        this.userSpeaking = false;
+        this.speechEndTimer = null;
+        if (this.onStateChange) {
+          this.onStateChange(TurnState.PROCESSING);
+        }
+        this.endUserTurn();
+      }, 400);
+    }
+  }
+
+  private sendUserInterrupt() {
+    if (!this.ws || !this._connected) return;
+    this.ws.send(JSON.stringify({ type: 'user_interrupt' }));
   }
 
   /**

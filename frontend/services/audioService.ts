@@ -11,8 +11,12 @@
 const TARGET_SAMPLE_RATE = 24000;
 const FRAME_SIZE = 1920; // 80ms at 24kHz
 const FRAME_DURATION_MS = 80;
+const SPEECH_THRESHOLD = 0.015;
+const MIN_SPEECH_FRAMES = 2; // 160ms above threshold to start speech
+const SILENCE_TIMEOUT_FRAMES = Math.ceil(1000 / FRAME_DURATION_MS); // ~1s silence to end speech
 
 type AudioCallback = (audioBase64: string) => void;
+type SpeechCallback = (state: 'start' | 'end') => void;
 
 class AudioService {
   private audioContext: AudioContext | null = null;
@@ -21,6 +25,7 @@ class AudioService {
   private scriptProcessor: ScriptProcessorNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   private onAudioChunk: AudioCallback | null = null;
+  private onSpeechStateChange: SpeechCallback | null = null;
   private isCapturing = false;
 
   /**
@@ -56,7 +61,7 @@ class AudioService {
   /**
    * Start capturing audio and sending chunks
    */
-  async startCapture(onAudioChunk: AudioCallback): Promise<boolean> {
+  async startCapture(onAudioChunk: AudioCallback, onSpeechStateChange?: SpeechCallback): Promise<boolean> {
     if (!this.audioContext || !this.mediaStream) {
       console.error('AudioService: Not initialized');
       return false;
@@ -68,6 +73,7 @@ class AudioService {
     }
 
     this.onAudioChunk = onAudioChunk;
+    this.onSpeechStateChange = onSpeechStateChange || null;
     this.isCapturing = true;
 
     try {
@@ -80,6 +86,10 @@ class AudioService {
 
       // Audio buffer for accumulating samples
       let audioBuffer: Float32Array = new Float32Array(0);
+
+      let speechFrames = 0;
+      let silenceFrames = 0;
+      let speaking = false;
 
       this.scriptProcessor.onaudioprocess = (event) => {
         if (!this.isCapturing) return;
@@ -103,6 +113,26 @@ class AudioService {
         while (audioBuffer.length >= FRAME_SIZE) {
           const frame = audioBuffer.slice(0, FRAME_SIZE);
           audioBuffer = audioBuffer.slice(FRAME_SIZE);
+
+          this.trackSpeechState(frame, () => {
+            speechFrames++;
+            if (!speaking && speechFrames >= MIN_SPEECH_FRAMES) {
+              speaking = true;
+              silenceFrames = 0;
+              this.onSpeechStateChange?.('start');
+            }
+            silenceFrames = 0;
+          }, () => {
+            speechFrames = 0;
+            if (speaking) {
+              silenceFrames++;
+              if (silenceFrames >= SILENCE_TIMEOUT_FRAMES) {
+                speaking = false;
+                silenceFrames = 0;
+                this.onSpeechStateChange?.('end');
+              }
+            }
+          });
 
           // Convert to PCM 16-bit
           const pcmData = this.floatToPCM16(frame);
@@ -205,6 +235,24 @@ class AudioService {
       pcm[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
     }
     return pcm;
+  }
+
+  private trackSpeechState(
+    frame: Float32Array,
+    onSpeechDetected: () => void,
+    onSilenceDetected: () => void
+  ): void {
+    let sum = 0;
+    for (let i = 0; i < frame.length; i++) {
+      const sample = frame[i];
+      sum += sample * sample;
+    }
+    const rms = Math.sqrt(sum / frame.length);
+    if (rms > SPEECH_THRESHOLD) {
+      onSpeechDetected();
+    } else {
+      onSilenceDetected();
+    }
   }
 
   /**

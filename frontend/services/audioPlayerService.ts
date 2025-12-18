@@ -292,11 +292,16 @@ class AudioPlayerService {
 
       // Sample live waveform for up-to-date loudness
       if (this.analyser && this.fftBuffer) {
-        this.analyser.getFloatTimeDomainData(this.fftBuffer);
+        const fftView = new Float32Array(
+          this.fftBuffer.buffer as ArrayBuffer,
+          this.fftBuffer.byteOffset,
+          this.fftBuffer.length
+        );
+        this.analyser.getFloatTimeDomainData(fftView);
         let sum = 0;
         let count = 0;
-        for (let i = 0; i < this.fftBuffer.length; i += 32) {
-          const v = this.fftBuffer[i];
+        for (let i = 0; i < fftView.length; i += 32) {
+          const v = fftView[i];
           sum += v * v;
           count++;
         }
