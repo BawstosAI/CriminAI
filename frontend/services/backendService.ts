@@ -23,6 +23,7 @@ class BackendService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 3;
   private isAudioMode = false;
+  private waitingForPlaybackEnd = false;
 
   /**
    * Connect to the text WebSocket server
@@ -61,6 +62,16 @@ class BackendService {
       console.error('BackendService: Failed to initialize audio player');
       // Continue anyway - player will auto-init when needed
     }
+
+    audioPlayerService.setPlaybackStateCallback((isPlaying) => {
+      if (!this.isAudioMode) return;
+      if (!isPlaying && this.waitingForPlaybackEnd) {
+        this.waitingForPlaybackEnd = false;
+        if (this.onStateChange) {
+          this.onStateChange(TurnState.LIVE);
+        }
+      }
+    });
 
     return this._connectToServer(AUDIO_WS_URL, onMessage, onStateChange, onTranscript);
   }
@@ -203,7 +214,10 @@ class BackendService {
       case 'bot_speaking_end':
         // Audio mode: Bot finished speaking
         console.log('BackendService: Bot speaking end');
-        if (this.onStateChange) {
+        if (audioPlayerService.playing) {
+          this.waitingForPlaybackEnd = true;
+        } else if (this.onStateChange) {
+          this.waitingForPlaybackEnd = false;
           this.onStateChange(TurnState.LIVE);
         }
         break;

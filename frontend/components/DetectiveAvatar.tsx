@@ -86,24 +86,22 @@ const DetectiveAvatar: React.FC<DetectiveAvatarProps> = ({ isSpeaking, audioLeve
 
     const mouthCenterY = 0.5 + swayY;
     const mouthLevel = isSpeakingRef.current ? speakLevel : 0;
-    const mouthActive = isSpeakingRef.current && mouthLevel > 0.02;
-    const openScale = 0.02 + mouthLevel * 0.07;
-    const mouthSpacing = 0.045;
-    const mouthWidths = [0.025, 0.032, 0.032, 0.025];
-    const mouthHeights = [0.03, 0.045, 0.045, 0.03];
-    const mouthOffsets = [-1.5, -0.5, 0.5, 1.5];
+    const mouthActive = isSpeakingRef.current && mouthLevel > 0.01;
+    const waveAmplitude = mouthActive ? (0.01 + mouthLevel * 0.08) : 0;
+    const waveThickness = mouthActive ? (0.005 + mouthLevel * 0.045) : 0;
+    const lobes = 4.5;
 
     let inMouth = false;
-    if (mouthActive && faceArea && y > 0.46 && y < 0.56) {
-      for (let i = 0; i < mouthOffsets.length; i++) {
-        const centerX = cx + mouthOffsets[i] * mouthSpacing;
-        const rx = mouthWidths[i];
-        const ry = mouthHeights[i] + openScale * (i === 1 || i === 2 ? 1.2 : 0.9);
-        const nx = (x - centerX) / rx;
-        const ny = (y - mouthCenterY) / ry;
-        if (nx * nx + ny * ny <= 1) {
+    if (mouthActive && faceArea && y > 0.44 && y < 0.58) {
+      const normalizedX = (dx + 0.18) / 0.36;
+      const wave = Math.sin(normalizedX * Math.PI * lobes + time * 2.6);
+      const yWave = mouthCenterY + wave * waveAmplitude;
+      if (Math.abs(y - yWave) < waveThickness) {
+        inMouth = true;
+      } else if (normalizedX < 0.08 || normalizedX > 0.92) {
+        const capWidth = 0.018 + mouthLevel * 0.03;
+        if (Math.abs(x - (cx + (normalizedX < 0.5 ? -0.18 : 0.18))) < capWidth && Math.abs(y - mouthCenterY) < waveThickness * 1.4) {
           inMouth = true;
-          break;
         }
       }
     }

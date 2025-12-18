@@ -24,7 +24,11 @@ class AudioPlayerService {
   private isInitialized = false;
   private pendingChunks = 0;
   private activeTtsId: number | null = null;
-  private smoothedLevel = 0;
+  private analyser: AnalyserNode | null = null;
+  private fftBuffer: Float32Array | null = null;
+  private targetLevel = 0;
+  private displayLevel = 0;
+  private levelLoopId: number | null = null;
 
   /**
    * Initialize the audio context (call early, e.g., on user gesture)
@@ -170,7 +174,7 @@ class AudioPlayerService {
 
       const source = this.audioContext.createBufferSource();
       source.buffer = buffer;
-      source.connect(this.audioContext.destination);
+      this.ensureAnalyser(source);
 
       const startTime = this.nextPlayTime;
       source.start(startTime);
@@ -216,6 +220,11 @@ class AudioPlayerService {
     }
     this.onPlaybackStateChange?.(false);
     this.updateAudioLevel(null);
+    if (this.levelLoopId) {
+      cancelAnimationFrame(this.levelLoopId);
+      this.levelLoopId = null;
+    }
+    this.displayLevel = 0;
   }
 
   /**
@@ -247,8 +256,8 @@ class AudioPlayerService {
     if (!this.onAudioLevel) return;
 
     if (!samples || samples.length === 0) {
-      this.smoothedLevel = 0;
-      this.onAudioLevel(0);
+      this.targetLevel = 0;
+      this.ensureLevelLoop();
       return;
     }
 
@@ -261,11 +270,72 @@ class AudioPlayerService {
       count += 1;
     }
     const rms = Math.sqrt(sum / Math.max(1, count));
-    const target = Math.min(1, rms * 3.5);
+    const instantaneousLevel = Math.min(1, rms * 3.5);
 
-    const alpha = target > this.smoothedLevel ? 0.6 : 0.2;
-    this.smoothedLevel = this.smoothedLevel + (target - this.smoothedLevel) * alpha;
-    this.onAudioLevel(this.smoothedLevel);
+    this.targetLevel = instantaneousLevel;
+    this.ensureLevelLoop();
+  }
+
+  private ensureLevelLoop() {
+    if (!this.audioContext) {
+      this.onAudioLevel?.(0);
+      return;
+    }
+
+    const step = () => {
+      if (!this.audioContext) {
+        this.displayLevel = 0;
+        this.onAudioLevel?.(0);
+        this.levelLoopId = null;
+        return;
+      }
+
+      // Sample live waveform for up-to-date loudness
+      if (this.analyser && this.fftBuffer) {
+        this.analyser.getFloatTimeDomainData(this.fftBuffer);
+        let sum = 0;
+        let count = 0;
+        for (let i = 0; i < this.fftBuffer.length; i += 32) {
+          const v = this.fftBuffer[i];
+          sum += v * v;
+          count++;
+        }
+        const rms = Math.sqrt(sum / Math.max(1, count));
+        const liveLevel = Math.min(1, rms * 3.5);
+        this.targetLevel = Math.max(liveLevel, this.targetLevel * 0.9);
+      }
+
+      const alpha = this.targetLevel > this.displayLevel ? 0.4 : 0.15;
+      this.displayLevel += (this.targetLevel - this.displayLevel) * alpha;
+
+      this.onAudioLevel?.(Math.max(0, Math.min(1, this.displayLevel)));
+
+      if (this.targetLevel < 0.01 && this.displayLevel < 0.02 && !this.isPlaying) {
+        this.displayLevel = 0;
+        this.onAudioLevel?.(0);
+        this.levelLoopId = null;
+        return;
+      }
+
+      this.levelLoopId = requestAnimationFrame(step);
+    };
+
+    if (!this.levelLoopId) {
+      this.levelLoopId = requestAnimationFrame(step);
+    }
+  }
+
+  private ensureAnalyser(source?: AudioBufferSourceNode) {
+    if (!this.audioContext || !source) return;
+    if (!this.analyser) {
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = 1024;
+      this.analyser.smoothingTimeConstant = 0.0;
+      this.fftBuffer = new Float32Array(this.analyser.fftSize);
+    }
+
+    source.connect(this.analyser);
+    this.analyser.connect(this.audioContext.destination);
   }
 }
 
