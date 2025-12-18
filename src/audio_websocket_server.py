@@ -113,6 +113,7 @@ START by greeting the witness and asking about the overall face shape."""
 # Audio configuration
 SAMPLE_RATE = 24000
 FRAME_SIZE = 1920  # 80ms at 24kHz
+PAUSE_PREDICTION_HEAD_INDEX = 1  # 1.0s pause head for semantic VAD
 
 # Kyutai server configuration
 # Note: 
@@ -143,6 +144,7 @@ class Session:
     is_speaking: bool = False
     tts_task: Optional[asyncio.Task] = None
     tts_generation: int = 0
+    stt_speech_started: bool = False
 
 
 class AudioArtistServer:
@@ -269,9 +271,20 @@ class AudioArtistServer:
             async for message in session.stt_ws:
                 data = msgpack.unpackb(message, raw=False)
                 
-                if data["type"] == "Word":
+                if data["type"] == "Step":
+                    prs = data.get("prs")
+                    if prs and len(prs) > PAUSE_PREDICTION_HEAD_INDEX:
+                        pause_prediction = prs[PAUSE_PREDICTION_HEAD_INDEX]
+                        if pause_prediction > 0.5 and session.stt_speech_started:
+                            session.stt_speech_started = False
+                            if session.client_ws:
+                                await self._send_message(session.client_ws, "stt_speech_end", None)
+                elif data["type"] == "Word":
                     word = data.get("text", "")
                     if word and session.client_ws:
+                        if not session.stt_speech_started:
+                            session.stt_speech_started = True
+                            await self._send_message(session.client_ws, "stt_speech_start", None)
                         session.current_transcript += word + " "
                         # Send partial transcription to frontend
                         await self._send_message(

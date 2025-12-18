@@ -26,6 +26,10 @@ class BackendService {
   private waitingForPlaybackEnd = false;
   private userSpeaking = false;
   private speechEndTimer: number | null = null;
+  private hasTranscriptThisTurn = false;
+  private lastWordAt = 0;
+  private endCheckTimer: number | null = null;
+  private sttSpeechActive = false;
 
   /**
    * Connect to the text WebSocket server
@@ -164,6 +168,20 @@ class BackendService {
         if (this.onTranscript) {
           this.onTranscript(data.text, true, data.is_partial);
         }
+        if (data.is_partial) {
+          this.hasTranscriptThisTurn = true;
+          this.lastWordAt = Date.now();
+          if (!this.userSpeaking) {
+            this.userSpeaking = true;
+            if (this.onStateChange) {
+              this.onStateChange(TurnState.LIVE);
+            }
+          }
+          if (this.endCheckTimer) {
+            clearTimeout(this.endCheckTimer);
+            this.endCheckTimer = null;
+          }
+        }
         break;
 
       case 'stt_ready':
@@ -200,6 +218,8 @@ class BackendService {
       case 'bot_speaking_start':
         // Audio mode: Bot starting to speak
         console.log('BackendService: Bot speaking start - audio player ready');
+        this.userSpeaking = false;
+        this.hasTranscriptThisTurn = false;
         if (this.onStateChange) {
           this.onStateChange(TurnState.BOT_SPEAKING);
         }
@@ -272,6 +292,24 @@ class BackendService {
         if (this.onStateChange) {
           this.onStateChange(TurnState.LIVE);
         }
+        this.userSpeaking = false;
+        this.hasTranscriptThisTurn = false;
+        break;
+
+      case 'stt_speech_start':
+        console.log('BackendService: STT speech start');
+        this.sttSpeechActive = true;
+        this.hasTranscriptThisTurn = false;
+        if (this.onStateChange) {
+          this.onStateChange(TurnState.LIVE);
+        }
+        this.triggerInterrupt();
+        break;
+
+      case 'stt_speech_end':
+        console.log('BackendService: STT speech end');
+        this.sttSpeechActive = false;
+        this.scheduleEndTurnCheck();
         break;
 
       case 'pong':
@@ -367,6 +405,17 @@ class BackendService {
     this.ws = null;
     this.isAudioMode = false;
     this.userSpeaking = false;
+    if (this.speechEndTimer) {
+      clearTimeout(this.speechEndTimer);
+      this.speechEndTimer = null;
+    }
+    this.hasTranscriptThisTurn = false;
+    this.lastWordAt = 0;
+    if (this.endCheckTimer) {
+      clearTimeout(this.endCheckTimer);
+      this.endCheckTimer = null;
+    }
+    this.sttSpeechActive = false;
   }
 
   disconnect() {
@@ -378,34 +427,56 @@ class BackendService {
   }
 
   private handleSpeechState(state: 'start' | 'end') {
+    // VAD is only a guard; STT events are primary. Use it to barge-in fast.
     if (state === 'start') {
       if (this.speechEndTimer) {
         clearTimeout(this.speechEndTimer);
         this.speechEndTimer = null;
       }
-      if (!this.userSpeaking) {
-        this.userSpeaking = true;
-        if (this.onStateChange) {
-          this.onStateChange(TurnState.LIVE);
-        }
-        if (audioPlayerService.playing) {
-          audioPlayerService.stop();
-        }
-        this.sendUserInterrupt();
+      if (audioPlayerService.playing) {
+        this.triggerInterrupt();
       }
-    } else if (this.userSpeaking) {
+    } else {
       if (this.speechEndTimer) {
         clearTimeout(this.speechEndTimer);
       }
       this.speechEndTimer = window.setTimeout(() => {
-        this.userSpeaking = false;
-        this.speechEndTimer = null;
-        if (this.onStateChange) {
-          this.onStateChange(TurnState.PROCESSING);
+        if (this.sttSpeechActive) {
+          return;
         }
-        this.endUserTurn();
+        this.scheduleEndTurnCheck();
       }, 400);
     }
+  }
+
+  private scheduleEndTurnCheck() {
+    if (this.endCheckTimer) {
+      clearTimeout(this.endCheckTimer);
+    }
+    this.endCheckTimer = window.setTimeout(() => {
+      if (this.sttSpeechActive) return;
+      const timeSinceWord = Date.now() - this.lastWordAt;
+      if (timeSinceWord < 500) {
+        this.scheduleEndTurnCheck();
+        return;
+      }
+      this.userSpeaking = false;
+      this.endCheckTimer = null;
+      if (this.onStateChange) {
+        this.onStateChange(TurnState.PROCESSING);
+      }
+      this.endUserTurn();
+    }, 150);
+  }
+
+  private triggerInterrupt() {
+    if (!this.userSpeaking) {
+      this.userSpeaking = true;
+    }
+    if (audioPlayerService.playing) {
+      audioPlayerService.stop();
+    }
+    this.sendUserInterrupt();
   }
 
   private sendUserInterrupt() {

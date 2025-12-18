@@ -12,8 +12,8 @@ const TARGET_SAMPLE_RATE = 24000;
 const FRAME_SIZE = 1920; // 80ms at 24kHz
 const FRAME_DURATION_MS = 80;
 const SPEECH_THRESHOLD = 0.015;
-const MIN_SPEECH_FRAMES = 2; // 160ms above threshold to start speech
-const SILENCE_TIMEOUT_FRAMES = Math.ceil(1000 / FRAME_DURATION_MS); // ~1s silence to end speech
+const MIN_SPEECH_FRAMES = 1; // 80ms above threshold to start speech
+const SILENCE_TIMEOUT_FRAMES = Math.ceil(1200 / FRAME_DURATION_MS); // ~1.2s silence to end speech
 
 type AudioCallback = (audioBase64: string) => void;
 type SpeechCallback = (state: 'start' | 'end') => void;
@@ -90,6 +90,7 @@ class AudioService {
       let speechFrames = 0;
       let silenceFrames = 0;
       let speaking = false;
+      let noiseFloor = 0.005;
 
       this.scriptProcessor.onaudioprocess = (event) => {
         if (!this.isCapturing) return;
@@ -114,15 +115,22 @@ class AudioService {
           const frame = audioBuffer.slice(0, FRAME_SIZE);
           audioBuffer = audioBuffer.slice(FRAME_SIZE);
 
-          this.trackSpeechState(frame, () => {
+          const rms = this.calculateRms(frame);
+          if (!speaking) {
+            noiseFloor = noiseFloor * 0.98 + rms * 0.02;
+          }
+          const dynamicThreshold = Math.max(SPEECH_THRESHOLD, noiseFloor * 3.5);
+          const speechDetected = rms > dynamicThreshold;
+
+          if (speechDetected) {
             speechFrames++;
+            silenceFrames = 0;
             if (!speaking && speechFrames >= MIN_SPEECH_FRAMES) {
               speaking = true;
               silenceFrames = 0;
               this.onSpeechStateChange?.('start');
             }
-            silenceFrames = 0;
-          }, () => {
+          } else {
             speechFrames = 0;
             if (speaking) {
               silenceFrames++;
@@ -132,7 +140,7 @@ class AudioService {
                 this.onSpeechStateChange?.('end');
               }
             }
-          });
+          }
 
           // Convert to PCM 16-bit
           const pcmData = this.floatToPCM16(frame);
@@ -237,22 +245,13 @@ class AudioService {
     return pcm;
   }
 
-  private trackSpeechState(
-    frame: Float32Array,
-    onSpeechDetected: () => void,
-    onSilenceDetected: () => void
-  ): void {
+  private calculateRms(frame: Float32Array): number {
     let sum = 0;
     for (let i = 0; i < frame.length; i++) {
       const sample = frame[i];
       sum += sample * sample;
     }
-    const rms = Math.sqrt(sum / frame.length);
-    if (rms > SPEECH_THRESHOLD) {
-      onSpeechDetected();
-    } else {
-      onSilenceDetected();
-    }
+    return Math.sqrt(sum / frame.length);
   }
 
   /**
