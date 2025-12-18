@@ -141,16 +141,21 @@ async def _stream_gemini_response(
             },
         )
 
-        for chunk in response:
-            if chunk.text:
-                stream_chunk = ChatCompletionChunk(
-                    id=completion_id,
-                    created=created,
-                    model=request.model,
-                    choices=[StreamChoice(delta=DeltaMessage(content=chunk.text))],
-                )
-                yield f"data: {stream_chunk.model_dump_json()}\n\n"
-                await asyncio.sleep(0)  # Allow other tasks to run
+        async def stream_chunks():
+            # Run the synchronous generator in executor to not block
+            loop = asyncio.get_running_loop()
+            for chunk in response:
+                if chunk.text:
+                    stream_chunk = ChatCompletionChunk(
+                        id=completion_id,
+                        created=created,
+                        model=request.model,
+                        choices=[StreamChoice(delta=DeltaMessage(content=chunk.text))],
+                    )
+                    yield f"data: {stream_chunk.model_dump_json()}\n\n"
+        
+        async for chunk_data in stream_chunks():
+            yield chunk_data
 
     except Exception as e:
         error_chunk = {"error": {"message": str(e), "type": "api_error"}}

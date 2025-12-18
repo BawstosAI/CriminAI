@@ -209,13 +209,13 @@ const App: React.FC = () => {
         {/* Audio Mode Button */}
         <button 
           onClick={() => selectMode(InteractionMode.AUDIO)}
-          className="group px-8 py-6 border-2 border-green-500/50 hover:border-green-500 hover:bg-green-900/30 font-mono transition-all flex flex-col items-center gap-3 opacity-70"
+          className="group px-8 py-6 border-2 border-green-500 hover:bg-green-500 hover:text-black font-mono transition-all flex flex-col items-center gap-3"
         >
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
           </svg>
           <span className="font-bold">AUDIO MODE</span>
-          <span className="text-[10px] text-green-700">(DEMO ONLY)</span>
+          <span className="text-[10px] text-green-600 group-hover:text-green-900">Speak naturally</span>
         </button>
       </div>
 
@@ -226,7 +226,7 @@ const App: React.FC = () => {
       )}
 
       <p className="text-[10px] text-green-800 font-mono">
-        Text mode connects to backend • Audio mode is UI demo
+        Both modes connect to backend • Choose your preferred interaction style
       </p>
     </div>
   );

@@ -74,9 +74,8 @@ class AudioService {
       // Create source node from microphone
       this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
 
-      // Use ScriptProcessor for audio processing (deprecated but widely supported)
-      // FRAME_SIZE * 2 to account for potential sample rate mismatch
-      const bufferSize = 4096;
+      // Use smaller buffer size for lower latency (2048 instead of 4096)
+      const bufferSize = 2048;
       this.scriptProcessor = this.audioContext.createScriptProcessor(bufferSize, 1, 1);
 
       // Audio buffer for accumulating samples
@@ -87,7 +86,7 @@ class AudioService {
 
         const inputData = event.inputBuffer.getChannelData(0);
         
-        // Resample if needed
+        // Resample if needed (usually browser already gives us 24kHz)
         const resampledData = this.resample(
           inputData,
           this.audioContext!.sampleRate,
@@ -100,7 +99,7 @@ class AudioService {
         newBuffer.set(resampledData, audioBuffer.length);
         audioBuffer = newBuffer;
 
-        // Send complete frames
+        // Send complete frames immediately when ready
         while (audioBuffer.length >= FRAME_SIZE) {
           const frame = audioBuffer.slice(0, FRAME_SIZE);
           audioBuffer = audioBuffer.slice(FRAME_SIZE);
@@ -108,7 +107,7 @@ class AudioService {
           // Convert to PCM 16-bit
           const pcmData = this.floatToPCM16(frame);
           
-          // Send as base64
+          // Send as base64 immediately
           const base64 = this.arrayBufferToBase64(pcmData.buffer as ArrayBuffer);
           this.onAudioChunk?.(base64);
         }

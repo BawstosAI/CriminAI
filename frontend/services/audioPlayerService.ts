@@ -1,6 +1,6 @@
 /**
  * Audio Player Service - Plays PCM audio from the server
- * 
+ *
  * Handles streaming PCM audio playback from Kyutai TTS:
  * - Sample Rate: 24000 Hz (Kyutai TTS output)
  * - Format: PCM 16-bit signed integer (little-endian)
@@ -8,25 +8,34 @@
  */
 
 const TTS_SAMPLE_RATE = 24000;
+const MIN_BUFFER_BEFORE_PLAY = 3; // Buffer a few chunks for smoother playback
 
 type PlaybackStateCallback = (isPlaying: boolean) => void;
 
 class AudioPlayerService {
   private audioContext: AudioContext | null = null;
   private audioQueue: AudioBuffer[] = [];
+  private activeSources: Set<AudioBufferSourceNode> = new Set();
   private isPlaying = false;
-  private currentSource: AudioBufferSourceNode | null = null;
   private nextPlayTime = 0;
   private onPlaybackStateChange: PlaybackStateCallback | null = null;
+  private isInitialized = false;
+  private pendingChunks = 0;
+  private activeTtsId: number | null = null;
 
   /**
-   * Initialize the audio context
+   * Initialize the audio context (call early, e.g., on user gesture)
    */
   async initialize(): Promise<boolean> {
+    if (this.isInitialized && this.audioContext) {
+      return true;
+    }
     try {
       this.audioContext = new AudioContext({
         sampleRate: TTS_SAMPLE_RATE,
+        latencyHint: 'interactive',
       });
+      this.isInitialized = true;
       console.log(`AudioPlayerService: Initialized with sample rate ${this.audioContext.sampleRate}Hz`);
       return true;
     } catch (error) {
@@ -43,11 +52,37 @@ class AudioPlayerService {
   }
 
   /**
+   * Start a new TTS stream and clear any previous playback.
+   */
+  startStream(ttsId: number): void {
+    if (this.activeTtsId === ttsId) {
+      return;
+    }
+    this.stop();
+    this.activeTtsId = ttsId;
+    if (this.audioContext) {
+      this.nextPlayTime = this.audioContext.currentTime;
+    } else {
+      this.nextPlayTime = 0;
+    }
+  }
+
+  /**
    * Queue PCM audio data for playback
    * @param base64Audio Base64-encoded PCM audio data
+   * @param ttsId Optional stream id to ensure we only play current audio
    */
-  async queueAudio(base64Audio: string): Promise<void> {
-    if (!this.audioContext) {
+  async queueAudio(base64Audio: string, ttsId?: number): Promise<void> {
+    if (typeof ttsId === 'number') {
+      if (this.activeTtsId !== ttsId) {
+        this.startStream(ttsId);
+      }
+    } else if (this.activeTtsId === null) {
+      // No active stream id; refuse to play unknown audio
+      return;
+    }
+
+    if (!this.audioContext || !this.isInitialized) {
       console.log('AudioPlayerService: Auto-initializing on queueAudio');
       await this.initialize();
     }
@@ -57,41 +92,35 @@ class AudioPlayerService {
       return;
     }
 
-    // Resume if suspended (e.g., browser autoplay policy)
     if (this.audioContext.state === 'suspended') {
-      console.log('AudioPlayerService: Resuming suspended context');
       await this.audioContext.resume();
     }
 
     try {
-      // Decode base64 to ArrayBuffer
       const binaryString = atob(base64Audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      
-      console.log(`AudioPlayerService: Processing ${bytes.length} bytes of PCM data`);
 
-      // Convert PCM 16-bit to Float32
       const pcm16 = new Int16Array(bytes.buffer);
-      const float32 = new Float32Array(pcm16.length);
-      for (let i = 0; i < pcm16.length; i++) {
-        // Convert 16-bit int to float (-1 to 1)
-        float32[i] = pcm16[i] / 32768;
+      const numSamples = pcm16.length;
+      const float32 = new Float32Array(numSamples);
+      const scale = 1 / 32768;
+      for (let i = 0; i < numSamples; i++) {
+        float32[i] = pcm16[i] * scale;
       }
 
-      // Create audio buffer
-      const audioBuffer = this.audioContext.createBuffer(1, float32.length, TTS_SAMPLE_RATE);
+      const audioBuffer = this.audioContext.createBuffer(1, numSamples, TTS_SAMPLE_RATE);
       audioBuffer.getChannelData(0).set(float32);
-      
-      console.log(`AudioPlayerService: Queued buffer with ${float32.length} samples (${audioBuffer.duration.toFixed(2)}s)`);
 
-      // Queue for playback
       this.audioQueue.push(audioBuffer);
+      this.pendingChunks++;
 
-      // Start playback if not already playing
-      if (!this.isPlaying) {
+      if (this.isPlaying) {
+        this.scheduleNextBuffers();
+      } else if (this.pendingChunks >= MIN_BUFFER_BEFORE_PLAY) {
         this.startPlayback();
       }
     } catch (error) {
@@ -107,47 +136,46 @@ class AudioPlayerService {
       return;
     }
 
-    console.log('AudioPlayerService: Starting playback');
     this.isPlaying = true;
-    this.nextPlayTime = this.audioContext.currentTime;
+    this.pendingChunks = 0;
+    this.nextPlayTime = this.audioContext.currentTime + 0.03;
     this.onPlaybackStateChange?.(true);
-    this.playNext();
+    this.scheduleNextBuffers();
   }
 
   /**
-   * Play the next buffer in the queue
+   * Schedule the next buffers in the queue for seamless playback
    */
-  private playNext(): void {
-    if (!this.audioContext) return;
+  private scheduleNextBuffers(): void {
+    if (!this.audioContext || !this.isPlaying) return;
 
-    const buffer = this.audioQueue.shift();
-    if (!buffer) {
-      // Queue empty, stop playback
-      this.isPlaying = false;
-      this.onPlaybackStateChange?.(false);
-      return;
+    const maxScheduleAhead = 5;
+    let scheduled = 0;
+
+    while (this.audioQueue.length > 0 && scheduled < maxScheduleAhead) {
+      const buffer = this.audioQueue.shift();
+      if (!buffer) break;
+
+      const source = this.audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.audioContext.destination);
+
+      const startTime = this.nextPlayTime;
+      source.start(startTime);
+      this.nextPlayTime += buffer.duration;
+      scheduled++;
+
+      this.activeSources.add(source);
+      source.onended = () => {
+        this.activeSources.delete(source);
+        if (this.audioQueue.length > 0) {
+          this.scheduleNextBuffers();
+        } else if (this.activeSources.size === 0) {
+          this.isPlaying = false;
+          this.onPlaybackStateChange?.(false);
+        }
+      };
     }
-
-    // Create source node
-    const source = this.audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(this.audioContext.destination);
-
-    // Schedule playback
-    source.start(this.nextPlayTime);
-    this.nextPlayTime += buffer.duration;
-
-    // When this buffer ends, play next
-    source.onended = () => {
-      if (this.audioQueue.length > 0) {
-        this.playNext();
-      } else {
-        this.isPlaying = false;
-        this.onPlaybackStateChange?.(false);
-      }
-    };
-
-    this.currentSource = source;
   }
 
   /**
@@ -155,17 +183,24 @@ class AudioPlayerService {
    */
   stop(): void {
     this.audioQueue = [];
-    
-    if (this.currentSource) {
+    this.pendingChunks = 0;
+
+    this.activeSources.forEach((source) => {
       try {
-        this.currentSource.stop();
+        source.stop();
       } catch (e) {
-        // Already stopped
+        // Source might already be stopped
       }
-      this.currentSource = null;
-    }
+    });
+    this.activeSources.clear();
 
     this.isPlaying = false;
+    this.activeTtsId = null;
+    if (this.audioContext) {
+      this.nextPlayTime = this.audioContext.currentTime;
+    } else {
+      this.nextPlayTime = 0;
+    }
     this.onPlaybackStateChange?.(false);
   }
 
@@ -187,6 +222,7 @@ class AudioPlayerService {
       this.audioContext.close();
       this.audioContext = null;
     }
+    this.isInitialized = false;
   }
 
   get playing(): boolean {

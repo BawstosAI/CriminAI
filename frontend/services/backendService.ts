@@ -46,11 +46,20 @@ class BackendService {
   ): Promise<boolean> {
     this.isAudioMode = true;
 
-    // Initialize audio service first
-    const audioInitialized = await audioService.initialize();
+    // Initialize both audio services upfront to avoid latency later
+    const [audioInitialized, playerInitialized] = await Promise.all([
+      audioService.initialize(),
+      audioPlayerService.initialize(),
+    ]);
+    
     if (!audioInitialized) {
-      console.error('BackendService: Failed to initialize audio');
+      console.error('BackendService: Failed to initialize audio capture');
       return false;
+    }
+    
+    if (!playerInitialized) {
+      console.error('BackendService: Failed to initialize audio player');
+      // Continue anyway - player will auto-init when needed
     }
 
     return this._connectToServer(AUDIO_WS_URL, onMessage, onStateChange, onTranscript);
@@ -166,21 +175,29 @@ class BackendService {
         }
         break;
 
+      case 'stop_audio':
+        // Explicitly stop and clear audio queue
+        console.log('BackendService: Stopping audio playback');
+        audioPlayerService.stop();
+        if (typeof data.tts_id === 'number') {
+          audioPlayerService.startStream(data.tts_id);
+        }
+        break;
+
       case 'bot_speaking_start':
         // Audio mode: Bot starting to speak
-        console.log('BackendService: Bot speaking start - preparing audio playback');
+        console.log('BackendService: Bot speaking start - audio player ready');
         if (this.onStateChange) {
           this.onStateChange(TurnState.BOT_SPEAKING);
         }
-        // Stop any previous audio and ensure context is ready
-        audioPlayerService.stop();
-        // Initialize and resume must happen before audio chunks arrive
-        audioPlayerService.initialize().then(async () => {
-          await audioPlayerService.resume();
-          console.log('BackendService: Audio player ready for playback');
-        }).catch(err => {
-          console.error('BackendService: Failed to initialize audio player:', err);
-        });
+        if (typeof data.tts_id === 'number') {
+          audioPlayerService.startStream(data.tts_id);
+        } else {
+          // Fallback: ensure any previous playback is cleared
+          audioPlayerService.stop();
+        }
+        // Ensure context is resumed (needed after user gesture)
+        audioPlayerService.resume();
         break;
 
       case 'bot_speaking_end':
@@ -195,7 +212,7 @@ class BackendService {
         // Audio mode: Incoming TTS audio chunk
         if (data.audio && this.isAudioMode) {
           console.log(`BackendService: Received audio chunk, ${data.audio.length} chars`);
-          audioPlayerService.queueAudio(data.audio);
+          audioPlayerService.queueAudio(data.audio, data.tts_id);
         }
         break;
 
