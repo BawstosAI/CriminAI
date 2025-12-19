@@ -110,13 +110,18 @@ End your final message with a special marker containing the image prompt:
 
 The prompt should be a single paragraph describing all gathered facial features suitable for image generation.
 
-START by greeting the witness and asking about the overall face shape."""
+START behavior:
+- Wait silently until the user says "Hey CrimnAI" (case-insensitive, tolerate minor variations).
+- Once awakened, greet and begin the interview.
+- Automatically generate the image when the [SKETCH_PROMPT] is produced; then ask if the sketch is correct.
+- If the user says it's correct, thank them for their collaboration and promise that the police will catch the criminal.
+- If the user says it's not correct, ask clarifying questions about what to change, produce a new [SKETCH_PROMPT], and repeat until the user is satisfied."""
 
 # Audio configuration
 SAMPLE_RATE = 24000
 FRAME_SIZE = 1920  # 80ms at 24kHz
 PAUSE_PREDICTION_HEAD_INDEX = 2  # Align with moshi pause head used in unmute
-VAD_SPEECH_THRESHOLD = 0.01  # Lower threshold to react faster to speech
+VAD_SPEECH_THRESHOLD = 0.006  # Lower threshold to react faster to speech
 VAD_MIN_SPEECH_FRAMES = 1
 VAD_SILENCE_TIMEOUT_FRAMES = math.ceil(1200 / (FRAME_SIZE / SAMPLE_RATE * 1000))
 
@@ -139,6 +144,10 @@ class Session:
     questions_asked: int = 0
     is_complete: bool = False
     sketch_prompt: Optional[str] = None
+    awaiting_confirmation: bool = False
+    is_awake: bool = False
+    image_in_progress: bool = False
+    wake_attempts: int = 0
     
     # Audio session state
     stt_ws: Optional[websockets.ClientConnection] = None
@@ -193,20 +202,14 @@ class AudioArtistServer:
             
             # Initialize STT connection
             await self._init_stt(session)
-            
-            # Get initial greeting from LLM
-            greeting = await self._get_initial_greeting(session)
-            
-            # Send STT ready signal
+            # Send STT ready signal; stay silent until wake word
             await self._send_message(websocket, "stt_ready", None)
-            
-            # Send initial greeting as text
-            await self._send_message(websocket, "assistant_message", greeting)
-            
-            # Synthesize and send initial greeting audio
-            # Wait a moment for STT to be ready before starting TTS
-            await asyncio.sleep(0.2)
-            await self._synthesize_and_send(websocket, session, greeting)
+            await self._send_message(
+                websocket,
+                "assistant_message",
+                "CrimnAI is listening. Say 'Hey CrimnAI' to begin.",
+                extra={"questions_asked": session.questions_asked},
+            )
             
             # Handle incoming messages
             async for raw_message in websocket:
@@ -225,15 +228,16 @@ class AudioArtistServer:
             await self._cleanup_session(session)
             del self.sessions[session_id]
     
-    async def _get_initial_greeting(self, session: Session) -> str:
-        """Get the initial greeting from the LLM."""
-        session.messages.append({"role": "system", "content": SYSTEM_PROMPT})
+    async def _get_greeting_after_wake(self, session: Session) -> str:
+        """Get greeting after wake word is detected."""
+        if not session.messages or session.messages[0].get("role") != "system":
+            session.messages.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
         
         try:
             response = await self.client.chat.completions.create(
                 model="gemini-2.0-flash",
                 messages=session.messages,
-                max_tokens=300,
+                max_tokens=200,
             )
             greeting = response.choices[0].message.content
             session.messages.append({"role": "assistant", "content": greeting})
@@ -241,9 +245,7 @@ class AudioArtistServer:
         except Exception as e:
             logger.error(f"LLM error: {e}")
             fallback = (
-                "Hello! I'm your AI forensic artist. Let's create a composite sketch. "
-                "Can you describe the overall shape of the suspect's face? "
-                "Was it round, oval, square, or something else?"
+                "Hello! I'm CrimnAI. Tell me about the suspect's face shape to begin."
             )
             session.messages.append({"role": "assistant", "content": fallback})
             return fallback
@@ -616,6 +618,68 @@ class AudioArtistServer:
                 # Send final transcription
                 await self._send_message(websocket, "transcription", transcript, extra={"is_partial": False})
                 
+                # Wake-word handling
+                if not session.is_awake:
+                    lowered = transcript.lower()
+                    wake_words = ["crimnai", "crim ai", "criminai", "crim n ai", "hey crim", "hey krem"]
+                    session.wake_attempts += 1
+                    if any(w in lowered for w in wake_words):
+                        session.is_awake = True
+                        session.wake_attempts = 0
+                        greeting = await self._get_greeting_after_wake(session)
+                        await self._send_message(websocket, "assistant_message", greeting)
+                        await self._synthesize_and_send(websocket, session, greeting)
+                    elif session.wake_attempts >= 3:
+                        session.is_awake = True
+                        session.wake_attempts = 0
+                        greeting = await self._get_greeting_after_wake(session)
+                        await self._send_message(websocket, "assistant_message", greeting)
+                        await self._synthesize_and_send(websocket, session, greeting)
+                    else:
+                        await self._send_message(websocket, "assistant_message", "Say 'Hey CrimnAI' to begin.")
+                    return
+                
+                # Confirmation flow: user responding after image
+                if session.awaiting_confirmation:
+                    session.messages.append({"role": "user", "content": transcript})
+                    session.questions_asked += 1
+                    await self._send_message(websocket, "thinking", None)
+                    try:
+                        response = await self.client.chat.completions.create(
+                            model="gemini-2.0-flash",
+                            messages=session.messages,
+                            max_tokens=400,
+                        )
+                        assistant_text = response.choices[0].message.content
+                        session.messages.append({"role": "assistant", "content": assistant_text})
+                        if "[SKETCH_PROMPT:" in assistant_text:
+                            start = assistant_text.find("[SKETCH_PROMPT:") + len("[SKETCH_PROMPT:")
+                            end = assistant_text.find("]", start)
+                            if end > start:
+                                session.sketch_prompt = assistant_text[start:end].strip()
+                                session.is_complete = True
+                                clean_text = assistant_text[:assistant_text.find("[SKETCH_PROMPT:")].strip()
+                                await self._send_message(websocket, "assistant_message", clean_text)
+                                await self._synthesize_and_send(websocket, session, clean_text)
+                                await self._start_image_generation(websocket, session, session.sketch_prompt)
+                                return
+                        # If user said it's correct
+                        if "yes" in transcript.lower() and "no" not in transcript.lower():
+                            thanks = (
+                                "Thank you for your collaboration and bravery. We will catch this criminal."
+                            )
+                            session.awaiting_confirmation = False
+                            await self._send_message(websocket, "assistant_message", thanks)
+                            await self._synthesize_and_send(websocket, session, thanks)
+                            return
+                        # Otherwise clarify
+                        await self._send_message(websocket, "assistant_message", assistant_text)
+                        await self._synthesize_and_send(websocket, session, assistant_text)
+                    except Exception as e:
+                        logger.exception(f"LLM error: {e}")
+                        await self._send_error(websocket, f"LLM error: {e}")
+                    return
+
                 # Add to conversation
                 session.messages.append({"role": "user", "content": transcript})
                 session.questions_asked += 1
@@ -640,21 +704,17 @@ class AudioArtistServer:
                         if end > start:
                             session.sketch_prompt = assistant_text[start:end].strip()
                             session.is_complete = True
+                            session.awaiting_confirmation = True
                             
                             # Send response without the marker
                             clean_text = assistant_text[:assistant_text.find("[SKETCH_PROMPT:")].strip()
                             await self._send_message(websocket, "assistant_message", clean_text)
                             
-                            # Send completion with prompt
-                            await self._send_message(
-                                websocket, 
-                                "interview_complete", 
-                                session.sketch_prompt,
-                                extra={"questions_asked": session.questions_asked}
-                            )
-                            
                             # Synthesize and send final message
                             await self._synthesize_and_send(websocket, session, clean_text)
+                            
+                            # Auto-start image generation
+                            await self._start_image_generation(websocket, session, session.sketch_prompt)
                             return
                     
                     # Send regular response
@@ -680,35 +740,7 @@ class AudioArtistServer:
             if not prompt:
                 await self._send_error(websocket, "No sketch prompt available")
                 return
-            
-            await self._send_message(websocket, "generating_image", "Starting image generation...")
-            
-            try:
-                import base64 as b64
-                from image_gen import generate_image_api, get_demo_image_path
-                
-                demo_image = get_demo_image_path()
-                image_path = demo_image or generate_image_api(prompt)
-                
-                # Read image and convert to base64 for browser display
-                with open(image_path, "rb") as f:
-                    image_data = b64.b64encode(f.read()).decode("utf-8")
-                
-                # Send as base64 data URL
-                image_url = f"data:image/png;base64,{image_data}"
-                
-                logger.info(f"Image generated: {image_path}")
-                
-                # Send success with base64 URL
-                await self._send_message(
-                    websocket,
-                    "image_ready",
-                    prompt,
-                    extra={"image_url": image_url, "image_path": image_path}
-                )
-            except Exception as e:
-                logger.exception(f"Image generation error: {e}")
-                await self._send_error(websocket, f"Image generation failed: {e}")
+            await self._start_image_generation(websocket, session, prompt)
         
         elif msg_type == "ping":
             await self._send_message(websocket, "pong", None)
@@ -766,6 +798,45 @@ class AudioArtistServer:
     async def _send_error(self, websocket: ServerConnection, error: str):
         """Send an error message."""
         await self._send_message(websocket, "error", error)
+
+    async def _start_image_generation(self, websocket: ServerConnection, session: Session, prompt: str):
+        """Generate image and send back to client, mark state accordingly."""
+        if session.image_in_progress:
+            return
+        session.image_in_progress = True
+        await self._send_message(websocket, "generating_image", "Starting image generation...")
+        try:
+            import base64 as b64
+            from image_gen import generate_image_api, get_demo_image_path
+            
+            demo_image = get_demo_image_path()
+            image_path = demo_image or generate_image_api(prompt)
+            
+            with open(image_path, "rb") as f:
+                image_data = b64.b64encode(f.read()).decode("utf-8")
+            image_url = f"data:image/png;base64,{image_data}"
+            
+            logger.info(f"Image generated: {image_path}")
+            
+            await self._send_message(
+                websocket,
+                "image_ready",
+                prompt,
+                extra={"image_url": image_url, "image_path": image_path}
+            )
+            
+            # Prompt user for confirmation
+            follow_up = (
+                "Here's the sketch. Is this accurate? Say yes to confirm, or describe what to change and I will regenerate."
+            )
+            session.messages.append({"role": "assistant", "content": follow_up})
+            await self._send_message(websocket, "assistant_message", follow_up)
+            await self._synthesize_and_send(websocket, session, follow_up)
+        except Exception as e:
+            logger.exception(f"Image generation error: {e}")
+            await self._send_error(websocket, f"Image generation failed: {e}")
+        finally:
+            session.image_in_progress = False
     
     async def _cleanup_session(self, session: Session):
         """Clean up session resources."""

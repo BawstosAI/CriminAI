@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [inputText, setInputText] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
   const [sketchPrompt, setSketchPrompt] = useState<string | null>(null);
+  const [imageRequested, setImageRequested] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [partialTranscript, setPartialTranscript] = useState<string>('');
   const [renderOverlay, setRenderOverlay] = useState(false);
@@ -78,9 +79,14 @@ const App: React.FC = () => {
     if (msg.type === 'final_render_ready' && msg.image_url) {
       setFinalMedia({ image: msg.image_url });
       setRenderOverlay(true);
+      setImageRequested(false);
     }
     if (msg.sketch_prompt) {
       setSketchPrompt(msg.sketch_prompt);
+      if (!imageRequested && isConnected) {
+        backendService.requestImageGeneration(msg.sketch_prompt);
+        setImageRequested(true);
+      }
     }
     if (msg.type === 'error') {
       setConnectionError(msg.text || 'Unknown error');
@@ -184,20 +190,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleGenerateImage = () => {
-    if (sketchPrompt) {
-      backendService.requestImageGeneration(sketchPrompt);
-      // Keep conversation flowing; status indicator will still show processing
-      setTurnState(TurnState.PROCESSING);
-    }
-  };
-
-  // Demo: Show final render (for audio mode)
-  const showDemoRender = () => {
-    setFinalMedia({ image: '/demo-sketch.png' });
-    setAppMode(AppMode.RENDER);
-  };
-
   const renderModeSelection = () => (
     <div className="w-full h-full flex flex-col items-center justify-center space-y-8 z-20">
       <h1 className="text-2xl md:text-4xl font-mono tracking-tighter border-b-2 border-green-500 pb-2">
@@ -274,13 +266,9 @@ const App: React.FC = () => {
         <div className="mx-4 mb-2 p-3 bg-yellow-900/30 border border-yellow-500/50">
           <p className="text-yellow-400 font-mono text-xs mb-2">📝 SKETCH PROMPT READY:</p>
           <p className="text-yellow-300 font-mono text-sm">{sketchPrompt}</p>
-          <button
-            onClick={handleGenerateImage}
-            disabled={!isConnected}
-            className="mt-2 px-4 py-1 bg-yellow-600/30 hover:bg-yellow-600/50 border border-yellow-500 text-yellow-300 font-mono text-xs disabled:opacity-50"
-          >
-            {turnState === TurnState.PROCESSING ? '⏳ GENERATING...' : '🎨 GENERATE IMAGE'}
-          </button>
+          <p className="text-yellow-400 font-mono text-[10px] mt-2">
+            {imageRequested ? 'Generating sketch automatically...' : 'Awaiting image generation...'}
+          </p>
         </div>
       )}
 
@@ -350,13 +338,9 @@ const App: React.FC = () => {
         <div className="mx-4 mb-2 p-3 bg-yellow-900/30 border border-yellow-500/50">
           <p className="text-yellow-400 font-mono text-xs mb-2">📝 SKETCH PROMPT READY:</p>
           <p className="text-yellow-300 font-mono text-sm">{sketchPrompt}</p>
-          <button
-            onClick={handleGenerateImage}
-            disabled={turnState === TurnState.PROCESSING}
-            className="mt-2 px-4 py-1 bg-yellow-600/30 hover:bg-yellow-600/50 border border-yellow-500 text-yellow-300 font-mono text-xs disabled:opacity-50"
-          >
-            {turnState === TurnState.PROCESSING ? '⏳ GENERATING...' : '🎨 GENERATE IMAGE'}
-          </button>
+          <p className="text-yellow-400 font-mono text-[10px] mt-2">
+            {imageRequested ? 'Generating sketch automatically...' : 'Awaiting image generation...'}
+          </p>
         </div>
       )}
 
