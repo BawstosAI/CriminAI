@@ -127,41 +127,81 @@ def generate_image(
     return output_path
 
 
+def generate_image_sdxl_turbo(
+    prompt: str,
+    output_path: Optional[str] = None,
+    seed: Optional[int] = None,
+    num_inference_steps: int = 3,
+    guidance_scale: float = 0.0,
+) -> str:
+    """Generate an image using SDXL-Turbo locally."""
+    try:
+        import torch
+        from diffusers import AutoPipelineForText2Image
+    except ImportError:
+        raise ImportError("Install diffusers and torch: pip install diffusers torch accelerate")
+
+    if output_path is None:
+        image_id = uuid.uuid4().hex[:8]
+        output_path = str(GENERATED_DIR / f"sketch_{image_id}.png")
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype = torch.float16 if device == "cuda" else torch.float32
+
+    logger.info(f"Loading SDXL-Turbo model on {device} dtype={dtype}")
+    pipe = AutoPipelineForText2Image.from_pretrained(
+        "stabilityai/sdxl-turbo",
+        torch_dtype=dtype,
+        variant="fp16" if device == "cuda" else None,
+    )
+    pipe.to(device)
+
+    generator = None
+    if seed is not None:
+        generator = torch.Generator(device=device).manual_seed(seed)
+
+    styled_prompt = (
+        f"charcoal forensic sketch portrait, black and white, "
+        f"police composite drawing style, detailed facial features, "
+        f"{prompt}"
+    )
+
+    logger.info(f"Generating via SDXL-Turbo: {styled_prompt[:80]}...")
+    image = pipe(
+        prompt=styled_prompt,
+        num_inference_steps=num_inference_steps,
+        guidance_scale=guidance_scale,
+        generator=generator,
+    ).images[0]
+    image.save(output_path)
+    logger.info(f"Image saved to: {output_path}")
+    return output_path
+
+
 def generate_image_api(
     prompt: str,
     output_path: Optional[str] = None,
     seed: Optional[int] = None,
 ) -> str:
-    """Generate image using Hugging Face Inference API (no local GPU needed).
-    
-    This is a lighter alternative that uses the HF API instead of local inference.
-    Requires HF_TOKEN environment variable.
-    
-    Args:
-        prompt: Text description
-        output_path: Optional output path
-        seed: Random seed
-        
-    Returns:
-        Path to generated image
-    """
-    try:
-        from huggingface_hub import InferenceClient
-    except ImportError:
-        raise ImportError("Install huggingface_hub: pip install huggingface_hub")
-    
-    hf_token = os.environ.get("HF_TOKEN")
-    if not hf_token:
-        raise RuntimeError("HF_TOKEN not found in .env file or environment")
-    
+    """Generate image using HF API; fall back to local SDXL-Turbo if unavailable."""
     # Generate output path
     if output_path is None:
         image_id = uuid.uuid4().hex[:8]
         output_path = str(GENERATED_DIR / f"sketch_{image_id}.png")
+
+    try:
+        from huggingface_hub import InferenceClient
+    except ImportError:
+        logger.warning("huggingface_hub not installed; falling back to SDXL-Turbo")
+        return generate_image_sdxl_turbo(prompt, output_path=output_path, seed=seed)
+    
+    hf_token = os.environ.get("HF_TOKEN")
+    if not hf_token:
+        logger.warning("HF_TOKEN missing; falling back to SDXL-Turbo")
+        return generate_image_sdxl_turbo(prompt, output_path=output_path, seed=seed)
     
     client = InferenceClient(token=hf_token)
     
-    # Style the prompt
     styled_prompt = (
         f"charcoal forensic sketch portrait, black and white, "
         f"police composite drawing style, detailed facial features, "
@@ -170,17 +210,17 @@ def generate_image_api(
     
     logger.info(f"Generating via API: {styled_prompt[:80]}...")
     
-    # Generate using API
-    image = client.text_to_image(
-        prompt=styled_prompt,
-        model="black-forest-labs/FLUX.1-dev",
-    )
-    
-    # Save
-    image.save(output_path)
-    logger.info(f"Image saved to: {output_path}")
-    
-    return output_path
+    try:
+        image = client.text_to_image(
+            prompt=styled_prompt,
+            model="black-forest-labs/FLUX.1-dev",
+        )
+        image.save(output_path)
+        logger.info(f"Image saved to: {output_path}")
+        return output_path
+    except Exception as e:
+        logger.warning(f"HF API failed ({e}); falling back to SDXL-Turbo")
+        return generate_image_sdxl_turbo(prompt, output_path=output_path, seed=seed)
 
 
 # Quick test

@@ -11,3 +11,8 @@ wheels/
 
 # secret environment variable files
 .env
+
+#
+
+generated/**/*
+!generated/.gitkeep

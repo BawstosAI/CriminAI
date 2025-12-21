@@ -69,15 +69,15 @@ class AudioPlayerService {
    * Start a new TTS stream and clear any previous playback.
    */
   startStream(ttsId: number): void {
-    if (this.activeTtsId === ttsId) {
-      return;
-    }
-    this.stop();
-    this.activeTtsId = ttsId;
-    if (this.audioContext) {
-      this.nextPlayTime = this.audioContext.currentTime;
-    } else {
-      this.nextPlayTime = 0;
+    // Stop existing playback when switching streams
+    if (this.activeTtsId !== ttsId) {
+      this.stop();
+      this.activeTtsId = ttsId;
+      if (this.audioContext) {
+        this.nextPlayTime = this.audioContext.currentTime;
+      } else {
+        this.nextPlayTime = 0;
+      }
     }
   }
 

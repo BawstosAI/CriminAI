@@ -11,7 +11,7 @@
 const TARGET_SAMPLE_RATE = 24000;
 const FRAME_SIZE = 1920; // 80ms at 24kHz
 const FRAME_DURATION_MS = 80;
-const SPEECH_THRESHOLD = 0.006;
+const SPEECH_THRESHOLD = 0.003;
 const MIN_SPEECH_FRAMES = 1; // 80ms above threshold to start speech
 const SILENCE_TIMEOUT_FRAMES = Math.ceil(1200 / FRAME_DURATION_MS); // ~1.2s silence to end speech
 
@@ -126,7 +126,7 @@ class AudioService {
           if (!speaking) {
             noiseFloor = noiseFloor * 0.98 + rms * 0.02;
           }
-          const dynamicThreshold = Math.max(SPEECH_THRESHOLD, noiseFloor * 2.0);
+          const dynamicThreshold = Math.max(SPEECH_THRESHOLD, noiseFloor * 1.2);
           const speechDetected = rms > dynamicThreshold;
 
           if (speechDetected) {
@@ -149,8 +149,8 @@ class AudioService {
             }
           }
 
-          // Light preamp to boost quiet speech
-          const boosted = frame.map((v) => Math.max(-1, Math.min(1, v * 1.4)));
+          // Preamp to boost quiet speech
+          const boosted = frame.map((v) => Math.max(-1, Math.min(1, v * 2.3)));
 
           // Convert to PCM 16-bit
           const pcmData = this.floatToPCM16(boosted);

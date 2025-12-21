@@ -147,6 +147,7 @@ class Session:
     awaiting_confirmation: bool = False
     is_awake: bool = False
     image_in_progress: bool = False
+    language: str = "English"
     wake_attempts: int = 0
     
     # Audio session state
@@ -227,12 +228,19 @@ class AudioArtistServer:
         finally:
             await self._cleanup_session(session)
             del self.sessions[session_id]
-    
+
     async def _get_greeting_after_wake(self, session: Session) -> str:
         """Get greeting after wake word is detected."""
         if not session.messages or session.messages[0].get("role") != "system":
-            session.messages.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
+            lang = session.language or "English"
+            system_prompt = SYSTEM_PROMPT + f"\nAlways respond in {lang}."
+            session.messages.insert(0, {"role": "system", "content": system_prompt})
         
+        # Ensure there is at least one user message to satisfy Gemini "contents are required"
+        has_user = any(m.get("role") == "user" for m in session.messages)
+        if not has_user:
+            session.messages.append({"role": "user", "content": "Hey CrimnAI"})
+
         try:
             response = await self.client.chat.completions.create(
                 model="gemini-2.0-flash",
@@ -275,6 +283,7 @@ class AudioArtistServer:
             
             logger.info(f"Connecting to STT server: {stt_url}")
             session.stt_ws = await websockets.connect(stt_url, additional_headers=headers)
+            await self._send_stt_init(session)
             
             # Start receiving transcriptions
             session.stt_task = asyncio.create_task(self._receive_stt_transcriptions(session))
@@ -284,6 +293,18 @@ class AudioArtistServer:
         except Exception as e:
             logger.error(f"Failed to connect to STT server: {e}")
             raise
+
+    async def _send_stt_init(self, session: Session):
+        """Send STT Init with language preference."""
+        if not session.stt_ws:
+            return
+        # Use English init for maximum compatibility; LLM language is handled separately
+        init_msg = {"type": "Init", "lang": "en"}
+        try:
+            await session.stt_ws.send(msgpack.packb(init_msg, use_bin_type=True))
+            logger.info("Sent STT Init with lang=en")
+        except Exception as e:
+            logger.warning(f"Failed to send STT Init: {e}")
     
     async def _receive_stt_transcriptions(self, session: Session):
         """Receive transcriptions from STT server."""
@@ -621,17 +642,22 @@ class AudioArtistServer:
                 # Wake-word handling
                 if not session.is_awake:
                     lowered = transcript.lower()
-                    wake_words = ["crimnai", "crim ai", "criminai", "crim n ai", "hey crim", "hey krem"]
+                    wake_words = [
+                        "crimnai", "crim ai", "criminai", "crim n ai", "hey crim", "hey krem", "hey",
+                        "bonjour crimn", "salut crim", "hey criminai", "bonjour criminai"
+                    ]
                     session.wake_attempts += 1
                     if any(w in lowered for w in wake_words):
                         session.is_awake = True
                         session.wake_attempts = 0
+                        session.messages.append({"role": "user", "content": transcript})
                         greeting = await self._get_greeting_after_wake(session)
                         await self._send_message(websocket, "assistant_message", greeting)
                         await self._synthesize_and_send(websocket, session, greeting)
                     elif session.wake_attempts >= 3:
                         session.is_awake = True
                         session.wake_attempts = 0
+                        session.messages.append({"role": "user", "content": transcript or "User is trying to start"})
                         greeting = await self._get_greeting_after_wake(session)
                         await self._send_message(websocket, "assistant_message", greeting)
                         await self._synthesize_and_send(websocket, session, greeting)
@@ -748,6 +774,14 @@ class AudioArtistServer:
         elif msg_type == "user_interrupt":
             logger.info("User interrupt received; stopping TTS")
             await self._stop_tts(session)
+
+        elif msg_type == "language_selected":
+            lang = data.get("language", "English")
+            session.language = lang
+            # Do not auto-greet; still wait for wake phrase
+            system_prompt = SYSTEM_PROMPT + f"\nAlways respond in {lang}."
+            session.messages = [{"role": "system", "content": system_prompt}]
+            await self._send_stt_init(session)
     
     async def _synthesize_and_send(
         self,

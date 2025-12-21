@@ -36,8 +36,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# System prompt for forensic artist
-SYSTEM_PROMPT = """You are an AI forensic sketch artist assistant. Your name is CrimnAI and your job start as soon as we call you like "Hey CrimnAI". Your job is to interview a witness to gather details about a suspect's appearance and generate a detailed text prompt for image generation.
+# System prompt (aligned with audio mode)
+SYSTEM_PROMPT = """You are an AI forensic sketch artist assistant. Your name is CrimnAI and your job starts as soon as we hear or read "Hey CrimnAI" (tolerate minor variations). Your job is to interview a witness to gather details about a suspect's appearance and generate a detailed text prompt for image generation.
 
 INTERVIEW GUIDELINES:
 1. Ask ONE question at a time
@@ -51,7 +51,11 @@ End your final message with a special marker containing the image prompt:
 
 The prompt should be a single paragraph describing all gathered facial features suitable for image generation.
 
-START by greeting the witness and asking about the overall face shape."""
+START behavior:
+- Wait until the user types something; once we see "Hey CrimnAI" (or variations), greet and begin the interview.
+- Automatically generate the image when the [SKETCH_PROMPT] is produced; then ask if the sketch is correct.
+- If the user says it's correct, thank them for their collaboration and promise that the police will catch the criminal.
+- If the user says it's not correct, ask clarifying questions about what to change, produce a new [SKETCH_PROMPT], and repeat until the user is satisfied."""
 
 
 @dataclass
@@ -62,6 +66,13 @@ class Session:
     questions_asked: int = 0
     is_complete: bool = False
     sketch_prompt: Optional[str] = None
+    awaiting_confirmation: bool = False
+    is_awake: bool = False
+    image_in_progress: bool = False
+    language: str = "English"
+    wake_attempts: int = 0
+    wake_attempts: int = 0
+    image_in_progress: bool = False
 
 
 class TextArtistServer:
@@ -94,9 +105,12 @@ class TextArtistServer:
         logger.info(f"New connection: {session_id}")
         
         try:
-            # Send initial greeting
-            greeting = await self._get_initial_greeting(session)
-            await self._send_message(websocket, "assistant_message", greeting)
+            # Initial instruction; wait for wake message
+            await self._send_message(
+                websocket,
+                "assistant_message",
+                "CrimnAI is listening. Type 'Hey CrimnAI' to begin."
+            )
             
             # Handle incoming messages
             async for raw_message in websocket:
@@ -114,15 +128,20 @@ class TextArtistServer:
         finally:
             del self.sessions[session_id]
     
-    async def _get_initial_greeting(self, session: Session) -> str:
-        """Get the initial greeting from the LLM."""
-        session.messages.append({"role": "system", "content": SYSTEM_PROMPT})
-        
+    async def _get_greeting_after_wake(self, session: Session) -> str:
+        """Get greeting after wake message is detected."""
+        if not session.messages or session.messages[0].get("role") != "system":
+            lang = session.language or "English"
+            system_prompt = SYSTEM_PROMPT + f"\nAlways respond in {lang}."
+            session.messages.insert(0, {"role": "system", "content": system_prompt})
+        has_user = any(m.get("role") == "user" for m in session.messages)
+        if not has_user:
+            session.messages.append({"role": "user", "content": "Hey CrimnAI"})
         try:
             response = await self.client.chat.completions.create(
                 model="gemini-2.0-flash",
                 messages=session.messages,
-                max_tokens=300,
+                max_tokens=200,
             )
             greeting = response.choices[0].message.content
             session.messages.append({"role": "assistant", "content": greeting})
@@ -130,9 +149,8 @@ class TextArtistServer:
         except Exception as e:
             logger.error(f"LLM error: {e}")
             fallback = (
-                "Hello! I'm your AI forensic artist. Let's create a composite sketch. "
-                "Can you describe the overall shape of the suspect's face? "
-                "Was it round, oval, square, or something else?"
+                "Hello! I'm CrimnAI. Let's build a composite sketch. "
+                "Tell me the overall face shape to begin."
             )
             session.messages.append({"role": "assistant", "content": fallback})
             return fallback
@@ -150,13 +168,64 @@ class TextArtistServer:
             user_text = data.get("text", "").strip()
             if not user_text:
                 return
-            
+
+            # Wake-word handling
+            if not session.is_awake:
+                lowered = user_text.lower()
+                wake_words = ["crimnai", "crim ai", "criminai", "crim n ai", "hey crim", "hey krem"]
+                session.wake_attempts += 1
+                if any(w in lowered for w in wake_words) or session.wake_attempts >= 3:
+                    session.is_awake = True
+                    session.wake_attempts = 0
+                    session.messages.append({"role": "user", "content": user_text})
+                    greeting = await self._get_greeting_after_wake(session)
+                    await self._send_message(websocket, "assistant_message", greeting)
+                else:
+                    await self._send_message(websocket, "assistant_message", "Say 'Hey CrimnAI' to begin.")
+                return
+
             # Add user message
             session.messages.append({"role": "user", "content": user_text})
             session.questions_asked += 1
             
             # Send typing indicator
             await self._send_message(websocket, "typing", None)
+
+            # Confirmation loop
+            if session.awaiting_confirmation:
+                try:
+                    response = await self.client.chat.completions.create(
+                        model="gemini-2.0-flash",
+                        messages=session.messages,
+                        max_tokens=400,
+                    )
+                    assistant_text = response.choices[0].message.content
+                    session.messages.append({"role": "assistant", "content": assistant_text})
+                    if "[SKETCH_PROMPT:" in assistant_text:
+                        start = assistant_text.find("[SKETCH_PROMPT:") + len("[SKETCH_PROMPT:")
+                        end = assistant_text.find("]", start)
+                        if end > start:
+                            session.sketch_prompt = assistant_text[start:end].strip()
+                            session.is_complete = True
+                            clean_text = assistant_text[:assistant_text.find("[SKETCH_PROMPT:")].strip()
+                            await self._send_message(websocket, "assistant_message", clean_text)
+                            await self._start_image_generation(websocket, session, session.sketch_prompt)
+                            return
+                    if "yes" in user_text.lower() and "no" not in user_text.lower():
+                        thanks = (
+                            "Thank you for your collaboration and bravery. We will catch this criminal."
+                        )
+                        session.awaiting_confirmation = False
+                        await self._send_message(websocket, "assistant_message", thanks)
+                        return
+                    await self._send_message(websocket, "assistant_message", assistant_text)
+                except Exception as e:
+                    logger.exception(f"LLM error: {e}")
+                    fallback = (
+                        "I didn't catch that. Tell me what to fix in the sketch (face shape, eyes, nose, mouth, hair, marks)."
+                    )
+                    await self._send_message(websocket, "assistant_message", fallback)
+                return
             
             # Get LLM response
             try:
@@ -175,6 +244,7 @@ class TextArtistServer:
                     if end > start:
                         session.sketch_prompt = assistant_text[start:end].strip()
                         session.is_complete = True
+                        session.awaiting_confirmation = True
                         
                         # Send response without the marker
                         clean_text = assistant_text[:assistant_text.find("[SKETCH_PROMPT:")].strip()
@@ -187,6 +257,8 @@ class TextArtistServer:
                             session.sketch_prompt,
                             extra={"questions_asked": session.questions_asked}
                         )
+                        # Auto-start image generation server-side
+                        await self._start_image_generation(websocket, session, session.sketch_prompt)
                         return
                 
                 # Send regular response
@@ -199,7 +271,13 @@ class TextArtistServer:
                 
             except Exception as e:
                 logger.exception(f"LLM error: {e}")
-                await self._send_error(websocket, f"LLM error: {e}")
+                # Graceful fallback so UI isn't stuck
+                fallback = (
+                    "I'm having trouble reaching the language model right now. "
+                    "Please continue describing the suspect's face shape, eyes, nose, mouth, hair, and any marks."
+                )
+                session.messages.append({"role": "assistant", "content": fallback})
+                await self._send_message(websocket, "assistant_message", fallback)
         
         elif msg_type == "generate_image":
             # User wants to generate the image
@@ -207,38 +285,17 @@ class TextArtistServer:
             if not prompt:
                 await self._send_error(websocket, "No sketch prompt available")
                 return
-            
-            await self._send_message(websocket, "generating_image", "Starting image generation...")
-            
-            try:
-                import base64
-                from image_gen import generate_image_api, get_demo_image_path
-                
-                demo_image = get_demo_image_path()
-                image_path = demo_image or generate_image_api(prompt)
-                
-                # Read image and convert to base64 for browser display
-                with open(image_path, "rb") as f:
-                    image_data = base64.b64encode(f.read()).decode("utf-8")
-                
-                # Send as base64 data URL
-                image_url = f"data:image/png;base64,{image_data}"
-                
-                logger.info(f"Image generated: {image_path}")
-                
-                # Send success with base64 URL
-                await self._send_message(
-                    websocket,
-                    "image_ready",
-                    prompt,
-                    extra={"image_url": image_url, "image_path": image_path}
-                )
-            except Exception as e:
-                logger.exception(f"Image generation error: {e}")
-                await self._send_error(websocket, f"Image generation failed: {e}")
+            await self._start_image_generation(websocket, session, prompt)
         
         elif msg_type == "ping":
             await self._send_message(websocket, "pong", None)
+
+        elif msg_type == "language_selected":
+            lang = data.get("language", "English")
+            session.language = lang
+            # Do not auto-awaken; still wait for wake word
+            system_prompt = SYSTEM_PROMPT + f"\nAlways respond in {lang}."
+            session.messages = [{"role": "system", "content": system_prompt}]
     
     async def _send_message(
         self, 
@@ -258,6 +315,37 @@ class TextArtistServer:
     async def _send_error(self, websocket: ServerConnection, error: str):
         """Send an error message."""
         await self._send_message(websocket, "error", error)
+
+    async def _start_image_generation(self, websocket: ServerConnection, session: Session, prompt: str):
+        """Generate image (demo-first) and push to client; avoid duplicate runs."""
+        if session.image_in_progress:
+            return
+        session.image_in_progress = True
+        await self._send_message(websocket, "generating_image", "Starting image generation...")
+        try:
+            import base64
+            from image_gen import generate_image_api, get_demo_image_path
+
+            demo_image = get_demo_image_path()
+            image_path = demo_image or generate_image_api(prompt)
+
+            with open(image_path, "rb") as f:
+                image_data = base64.b64encode(f.read()).decode("utf-8")
+            image_url = f"data:image/png;base64,{image_data}"
+
+            logger.info(f"Image generated: {image_path}")
+
+            await self._send_message(
+                websocket,
+                "image_ready",
+                prompt,
+                extra={"image_url": image_url, "image_path": image_path}
+            )
+        except Exception as e:
+            logger.exception(f"Image generation error: {e}")
+            await self._send_error(websocket, f"Image generation failed: {e}")
+        finally:
+            session.image_in_progress = False
     
     async def start(self):
         """Start the WebSocket server."""
