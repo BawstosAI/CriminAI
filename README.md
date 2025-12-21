@@ -1,4 +1,5 @@
 # 🎨 AI Forensic Sketch Artist
+<img width="2560" height="1399" alt="Screenshot 2025-12-18 235115" src="https://github.com/user-attachments/assets/d136163b-92b6-47e0-89f7-5038d798d190" />
 
 CrimnAI is a bilingual (EN/FR) forensic artist agent with real-time voice and text interaction. It interviews a witness, streams speech to text, reasons with Gemini, speaks back via TTS, and auto-generates sketches. Image generation runs locally with SDXL‑Turbo and can fall back to an API when configured (demo images are used when present).
 
